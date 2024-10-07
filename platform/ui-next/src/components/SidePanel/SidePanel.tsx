@@ -274,6 +274,7 @@ const SidePanel = ({
         {React.createElement(Icons[openStateIconName[side]] || Icons.MissingIcon, {
           className: 'text-primary-active',
         })}
+     
       </div>
     );
   };

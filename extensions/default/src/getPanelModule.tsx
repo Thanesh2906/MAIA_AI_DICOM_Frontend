@@ -1,5 +1,6 @@
 import React from 'react';
 import { WrappedPanelStudyBrowser, PanelMeasurementTable } from './Panels';
+import AiDiagnosisPanel from '../../../maia-extensions/ai/src/index';
 import i18n from 'i18next';
 
 // TODO:
@@ -43,6 +44,13 @@ function getPanelModule({ commandsManager, extensionManager, servicesManager }) 
       label: i18n.t('SidePanel:Measurements'),
       secondaryLabel: i18n.t('SidePanel:Measurements'),
       component: wrappedMeasurementPanel,
+    },
+    {
+      name: 'aiDiagnosis',
+      iconName: 'tab-ai',
+      iconLabel: 'AI Diagnosis',
+      label: i18n.t('SidePanel:AI Diagnosis'),
+      component: AiDiagnosisPanel,
     },
   ];
 }

@@ -3,6 +3,7 @@ import type { Types } from '@ohif/core';
 import { useViewportGrid } from '@ohif/ui';
 import MicroscopyPanel from './components/MicroscopyPanel/MicroscopyPanel';
 
+
 // TODO:
 // - No loading UI exists yet
 // - cancel promises when component is destroyed

@@ -6,7 +6,7 @@ const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
   hangingProtocol: '@ohif/extension-default.hangingProtocolModule.default',
-  leftPanel: '@ohif/extension-default.panelModule.seriesList',
+  leftPanel: '@ohif/extension-default.panelModule.aiDiagnosis',
   rightPanel: '@ohif/extension-default.panelModule.measurements',
 };
 
