@@ -74,7 +74,8 @@
     {
       "packageName": "@ohif/mode-segmentation"
     },
-    {      "packageName": "@ohif/mode-tmtv"
+    {
+      "packageName": "@ohif/mode-tmtv"
     },
     {
       "packageName": "@ohif/mode-microscopy"

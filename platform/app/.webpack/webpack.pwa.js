@@ -80,6 +80,8 @@ module.exports = (env, argv) => {
           __dirname,
           'C:/Users/User/Documents/GitHub/Viewers/maia-extensions/ai/node_modules'
         ),
+        path.resolve(__dirname, 'maia-modes/ai-analysis/node_modules'),
+        path.resolve(__dirname, 'maia-extensions/ai/node_modules'),
       ],
     },
     plugins: [
