@@ -47,5 +47,8 @@
     "package-json": "^8.1.0",
     "typescript": "4.6.4",
     "sharp": "^0.32.6"
+  },
+  "dependencies": {
+    "ohif-monorepo-root": "file:"
   }
 }

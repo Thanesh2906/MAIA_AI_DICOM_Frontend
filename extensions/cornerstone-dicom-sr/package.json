@@ -49,6 +49,7 @@
     "@cornerstonejs/adapters": "^1.82.4",
     "@cornerstonejs/core": "^1.82.4",
     "@cornerstonejs/tools": "^1.82.4",
+    "@ohif/extension-cornerstone-dicom-sr": "file:",
     "classnames": "^2.3.2"
   }
 }

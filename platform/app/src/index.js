@@ -18,6 +18,7 @@ import { history } from './utils/history';
  */
 import { modes as defaultModes, extensions as defaultExtensions } from './pluginImports';
 import loadDynamicConfig from './loadDynamicConfig';
+import { AppProvider } from './AppContext'; // Import the provider
 
 loadDynamicConfig(window.config).then(config_json => {
   // Reset Dynamic config if defined

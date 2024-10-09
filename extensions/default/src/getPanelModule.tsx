@@ -50,7 +50,14 @@ function getPanelModule({ commandsManager, extensionManager, servicesManager }) 
       iconName: 'tab-ai',
       iconLabel: 'AI Diagnosis',
       label: i18n.t('SidePanel:AI Diagnosis'),
-      component: AiDiagnosisPanel,
+      component: props => (
+        <AiDiagnosisPanel
+          {...props}
+          commandsManager={commandsManager}
+          extensionManager={extensionManager}
+          servicesManager={servicesManager}
+        />
+      ),
     },
   ];
 }

@@ -218,7 +218,7 @@ window.config = {
           href: '/',
         },
         React.createElement('img', {
-          src: './assets/maiaLogo.png',
+          src: '../assets/maiaLogo.png',
           // className: 'w-8 h-8',
         })
       );

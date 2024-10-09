@@ -72,9 +72,9 @@ function OHIFCornerstoneSRMeasurementViewport(props: withAppTypes) {
         { servicesManager, extensionManager, appConfig },
         displaySetInstanceUID
       );
-      const displaySets = displaySetService.getDisplaySetsForSeries(SeriesInstanceUIDs[0]);
+      displaySetService.getDisplaySetsForSeries(SeriesInstanceUIDs[0]);
       if (displaySets.length) {
-        viewportGridService.setDisplaySetsForViewports([
+        viewportGridService.setDisplaySetsFdisplaySetsorViewports([
           {
             viewportId: activeViewportId,
             displaySetInstanceUIDs: [displaySets[0].displaySetInstanceUID],
