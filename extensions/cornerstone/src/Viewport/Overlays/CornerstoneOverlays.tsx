@@ -3,10 +3,8 @@ import ViewportImageScrollbar from './ViewportImageScrollbar';
 import CustomizableViewportOverlay from './CustomizableViewportOverlay';
 import ViewportOrientationMarkers from './ViewportOrientationMarkers';
 import ViewportImageSliceLoadingIndicator from './ViewportImageSliceLoadingIndicator';
-import { useAppContext } from '../../../../../platform/app/src/AppContext';
 
 function CornerstoneOverlays(props: withAppTypes) {
-  const { blobUrl } = useAppContext(); // Get blobUrl from the app context
   const { viewportId, element, scrollbarHeight, servicesManager } = props;
   const { cornerstoneViewportService } = servicesManager.services;
 
@@ -35,30 +33,6 @@ function CornerstoneOverlays(props: withAppTypes) {
 
   if (!element) {
     return null;
-  }
-
-  // If blobUrl exists, override the existing display with the image from blobUrl
-  if (blobUrl) {
-    return (
-      <div
-        className="blob-url-overlay"
-        style={{ position: 'relative', height: '100%', width: '100%' }}
-      >
-        <img
-          src={blobUrl}
-          alt="AI Processed Result"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            height: '100%',
-            width: '100%',
-            objectFit: 'contain',
-            zIndex: 10, // Ensure the image appears on top of the other overlays
-          }}
-        />
-      </div>
-    );
   }
 
   if (viewportData) {

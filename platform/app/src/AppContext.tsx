@@ -3,16 +3,21 @@ import PropTypes from 'prop-types'; // Add this import
 
 // Create a Context
 const AppContext = createContext<
-  { blobUrl: string | null; setBlobUrl: (url: string | null) => void } | undefined
+  | {
+      blobUrl: null | string;
+      setBlobUrl: (url: null | string) => void;
+      blobbing: boolean;
+      setBlobbing: (blobbing: boolean) => void;
+    }
+  | undefined
 >(undefined); // Specify context type
 
 // Create a Provider component
 export const AppProvider = ({ children }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null); // Specify state type
-  
-
+  const [blobbing, setBlobbing] = useState<boolean>(false);
   return (
-    <AppContext.Provider value={{ blobUrl, setBlobUrl }}>
+    <AppContext.Provider value={{ blobUrl, setBlobUrl, blobbing, setBlobbing }}>
       {children} {/* Fix the children placement here */}
     </AppContext.Provider>
   );

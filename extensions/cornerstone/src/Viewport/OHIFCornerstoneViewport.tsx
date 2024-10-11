@@ -19,7 +19,7 @@ import { getWindowLevelActionMenu } from '../components/WindowLevelActionMenu/ge
 import { useAppConfig } from '@state';
 
 import { LutPresentation, PositionPresentation } from '../types/Presentation';
-
+import { useAppContext } from '../../../../platform/app/src/AppContext';
 const STACK = 'stack';
 
 /**
@@ -141,6 +141,7 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
   const [enabledVPElement, setEnabledVPElement] = useState(null);
   const elementRef = useRef() as React.MutableRefObject<HTMLDivElement>;
   const [appConfig] = useAppConfig();
+  const { blobUrl, blobbing } = useAppContext();
 
   const {
     displaySetService,
@@ -405,50 +406,106 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
   const { ref: resizeRef } = useResizeDetector({
     onResize,
   });
-  return (
-    <React.Fragment>
-      <div className="viewport-wrapper">
-        <div
-          className="cornerstone-viewport-element"
-          style={{ height: '100%', width: '100%' }}
-          onContextMenu={e => e.preventDefault()}
-          onMouseDown={e => e.preventDefault()}
-          ref={el => {
-            resizeRef.current = el;
-            elementRef.current = el;
-          }}
-        ></div>
-        <CornerstoneOverlays
-          viewportId={viewportId}
-          toolBarService={toolbarService}
-          element={elementRef.current}
-          scrollbarHeight={scrollbarHeight}
-          servicesManager={servicesManager}
-        />
-        <CinePlayer
-          enabledVPElement={enabledVPElement}
-          viewportId={viewportId}
-          servicesManager={servicesManager}
-        />
-      </div>
-      {/* top offset of 24px to account for ViewportActionCorners. */}
-      <div className="absolute top-[24px] w-full">
-        {viewportDialogState.viewportId === viewportId && (
-          <Notification
-            id="viewport-notification"
-            message={viewportDialogState.message}
-            type={viewportDialogState.type}
-            actions={viewportDialogState.actions}
-            onSubmit={viewportDialogState.onSubmit}
-            onOutsideClick={viewportDialogState.onOutsideClick}
-            onKeyPress={viewportDialogState.onKeyPress}
+
+  const blob = base64ToBlob(blobUrl);
+  const url = URL.createObjectURL(blob);
+
+  if (blobbing === true) {
+    return (
+      <React.Fragment>
+        <div className="viewport-wrapper">
+          <div>
+            <img
+              src={url}
+              alt="Blob content"
+              //className=""
+              style={{ height: '100%', width: '100%' }}
+              // onContextMenu={e => e.preventDefault()}
+              // onMouseDown={e => e.preventDefault()}
+            />
+          </div>
+
+          <CornerstoneOverlays
+            viewportId={viewportId}
+            toolBarService={toolbarService}
+            element={elementRef.current}
+            scrollbarHeight={scrollbarHeight}
+            servicesManager={servicesManager}
           />
-        )}
-      </div>
-      {/* The OHIFViewportActionCorners follows the viewport in the DOM so that it is naturally at a higher z-index.*/}
-      <OHIFViewportActionCorners viewportId={viewportId} />
-    </React.Fragment>
-  );
+          <CinePlayer
+            enabledVPElement={enabledVPElement}
+            viewportId={viewportId}
+            servicesManager={servicesManager}
+          />
+        </div>
+
+        {/* top offset of 24px to account for ViewportActionCorners. */}
+        <div className="absolute top-[24px] w-full">
+          {viewportDialogState.viewportId === viewportId && (
+            <Notification
+              id="viewport-notification"
+              message={viewportDialogState.message}
+              type={viewportDialogState.type}
+              actions={viewportDialogState.actions}
+              onSubmit={viewportDialogState.onSubmit}
+              onOutsideClick={viewportDialogState.onOutsideClick}
+              onKeyPress={viewportDialogState.onKeyPress}
+            />
+          )}
+        </div>
+        {/* The OHIFViewportActionCorners follows the viewport in the DOM so that it is naturally at a higher z-index.*/}
+        <OHIFViewportActionCorners viewportId={viewportId} />
+      </React.Fragment>
+    );
+  }
+
+  if (blobbing === false) {
+    return (
+      <React.Fragment>
+        <div className="viewport-wrapper">
+          <div
+            className="cornerstone-viewport-element"
+            style={{ height: '100%', width: '100%' }}
+            onContextMenu={e => e.preventDefault()}
+            onMouseDown={e => e.preventDefault()}
+            ref={el => {
+              resizeRef.current = el;
+              elementRef.current = el;
+            }}
+          ></div>
+          <CornerstoneOverlays
+            viewportId={viewportId}
+            toolBarService={toolbarService}
+            element={elementRef.current}
+            scrollbarHeight={scrollbarHeight}
+            servicesManager={servicesManager}
+          />
+          <CinePlayer
+            enabledVPElement={enabledVPElement}
+            viewportId={viewportId}
+            servicesManager={servicesManager}
+          />
+        </div>
+
+        {/* top offset of 24px to account for ViewportActionCorners. */}
+        <div className="absolute top-[24px] w-full">
+          {viewportDialogState.viewportId === viewportId && (
+            <Notification
+              id="viewport-notification"
+              message={viewportDialogState.message}
+              type={viewportDialogState.type}
+              actions={viewportDialogState.actions}
+              onSubmit={viewportDialogState.onSubmit}
+              onOutsideClick={viewportDialogState.onOutsideClick}
+              onKeyPress={viewportDialogState.onKeyPress}
+            />
+          )}
+        </div>
+        {/* The OHIFViewportActionCorners follows the viewport in the DOM so that it is naturally at a higher z-index.*/}
+        <OHIFViewportActionCorners viewportId={viewportId} />
+      </React.Fragment>
+    );
+  }
 }, areEqual);
 
 function _subscribeToJumpToMeasurementEvents(elementRef, viewportId, servicesManager) {
@@ -612,3 +669,22 @@ OHIFCornerstoneViewport.propTypes = {
 };
 
 export default OHIFCornerstoneViewport;
+
+function base64ToBlob(base64, contentType = '', sliceSize = 512) {
+  const byteCharacters = atob(base64);
+  const byteArrays = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+
+  return new Blob(byteArrays, { type: contentType });
+}

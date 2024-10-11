@@ -54,7 +54,7 @@ function PanelStudyBrowserAi({
 
   const [actionIcons, setActionIcons] = useState(defaultActionIcons);
   const [clickedImage, setClickedImage] = useState(null);
-  const { setBlobUrl } = useAppContext();
+  const { setBlobUrl, setBlobbing } = useAppContext();
 
   // multiple can be true or false
   const updateActionIconValue = actionIcon => {
@@ -84,7 +84,8 @@ function PanelStudyBrowserAi({
         displaySetInstanceUID,
         isHangingProtocolLayout
       );
-      setBlobUrl(null);
+      // setBlobUrl(null);
+      setBlobbing(false);
 
       // Get the display set using the displaySetInstanceUID
       const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
@@ -344,8 +345,8 @@ function PanelStudyBrowserAi({
           body: JSON.stringify({
             image_base64: clickedImage, // Base64 image string
             image_id: '123', // Replace with the actual image ID if available
-            overall_confidence_level: 0, // Set this based on your logic
-            overlap_confidence_level: 0, // Set this based on your logic
+            overall_confidence_level: 0.3, // Set this based on your logic
+            overlap_confidence_level: 0.3, // Set this based on your logic
           }),
         }
       );
@@ -354,19 +355,25 @@ function PanelStudyBrowserAi({
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      console.log('response', response);
 
       // Parse the JSON response
       const result = await response.json();
       console.log('Diagnosis Result:', result);
 
       // Convert base64 to Blob
-      const mimeType = 'image/jpeg'; // Replace with the actual MIME type if known
-      const fullBase64String = `data:${mimeType};base64,${result.detection_image}`; // Add the MIME type back
+      //const mimeType = 'image/jpeg'; // Replace with the actual MIME type if known
+      //const fullBase64String = `data:${mimeType};base64,${result.detection_image}`; // Add the MIME type back
 
       // Convert base64 string to Blob
-      const blob = await (await fetch(fullBase64String)).blob(); // Convert to Blob
-      const blobUrl = URL.createObjectURL(blob); // Create a URL for the blob
-      setBlobUrl(blobUrl);
+      // const a = await fetch(`data:image/jpeg;base64,${response['detection_image']}`); // Adjust MIME type if necessary
+      // const blob = await a.blob(); // Convert to Blob
+      // setBlobUrl(blob);
+      // Convert base64 to Blob
+      const blob = result.detection_image; // Adjust MIME type if necessary
+      console.log('blob', blob);
+      setBlobUrl(blob);
+      setBlobbing(true);
 
       // viewportGridService.setDisplaySetsForViewports(blob);
     } catch (error) {
