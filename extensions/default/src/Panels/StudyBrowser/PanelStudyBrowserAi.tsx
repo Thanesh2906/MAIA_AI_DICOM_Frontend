@@ -381,6 +381,49 @@ function PanelStudyBrowserAi({
     }
   };
 
+  const handlePerformAIReporting = async () => {
+    if (clickedImage) {
+      console.log('clickedImage', clickedImage);
+
+      const url = 'https://api.hyperbolic.xyz/v1/chat/completions';
+
+      const base64Image = clickedImage; // Use your Base64 string here
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
+        },
+        body: JSON.stringify({
+          model: 'meta-llama/Llama-3.2-90B-Vision-Instruct',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Create and X-ray report based on the following image' },
+                {
+                  type: 'image_url',
+                  image_url: { url: 'data:image/jpeg;base64,' + base64Image },
+                },
+              ],
+            },
+          ],
+          max_tokens: 2048,
+          temperature: 0.7,
+          top_p: 0.9,
+          stream: false,
+        }),
+      });
+      console.log('response', response);
+      const json = await response.json();
+
+      const output = json.choices[0].message.content;
+      console.log(output);
+    }
+  };
+
   return (
     <>
       {renderHeader && (
@@ -416,7 +459,7 @@ function PanelStudyBrowserAi({
       />
       <div className="flex flex-col gap-4 text-xl font-bold">
         <Button onClick={handlePerformAIDiagnosis}>Perform AI Diagnosis</Button>
-        <Button>Perform AI Reporting</Button>
+        <Button onClick={handlePerformAIReporting}>Perform AI Reporting</Button>
       </div>
     </>
   );
