@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 import StudyListTableRow from './StudyListTableRow';
 
 const StudyListTable = ({ tableDataSource, querying }) => {
+  console.log('tableDataSource', tableDataSource);
+
   return (
     <div className="bg-black">
       <div className="container relative m-auto">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useImageViewer, useViewportGrid } from '@ohif/ui';
-import { StudyBrowser as NewStudyBrowser } from '@ohif/ui-next';
+import { StudyBrowser as NewStudyBrowser, Popover } from '@ohif/ui-next';
 import { StudyBrowser as OldStudyBrowser } from '@ohif/ui';
 import { utils } from '@ohif/core';
 import { useAppConfig } from '@state';
@@ -11,6 +11,19 @@ import { PanelStudyBrowserHeader } from './PanelStudyBrowserHeader';
 import { defaultActionIcons, defaultViewPresets } from './constants';
 import { Button } from '@ohif/ui';
 import { useAppContext } from '../../../../../platform/app/src/AppContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../../../../component/alert-dialog';
+import { Textarea } from '../../../../../component/textarea';
+import jsPDF from 'jspdf';
 
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
@@ -33,9 +46,6 @@ function PanelStudyBrowserAi({
   const navigate = useNavigate();
   const [appConfig] = useAppConfig();
 
-  // Normally you nest the components so the tree isn't so deep, and the data
-  // doesn't have to have such an intense shape. This works well enough for now.
-  // Tabs --> Studies --> DisplaySets --> Thumbnails
   const { StudyInstanceUIDs } = useImageViewer();
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
     useViewportGrid();
@@ -54,7 +64,12 @@ function PanelStudyBrowserAi({
 
   const [actionIcons, setActionIcons] = useState(defaultActionIcons);
   const [clickedImage, setClickedImage] = useState(null);
-  const { setBlobUrl, setBlobbing } = useAppContext();
+  const { blobUrl, setBlobUrl, setBlobbing, patientInfo } = useAppContext();
+  const { PatientName, PatientID, PatientSex, PatientDOB } = patientInfo;
+  const [reportOutput, setReportOutput] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  console.log('patientInfo', patientInfo);
 
   // multiple can be true or false
   const updateActionIconValue = actionIcon => {
@@ -136,8 +151,6 @@ function PanelStudyBrowserAi({
 
       let qidoStudiesForPatient = qidoForStudyUID;
 
-      // try to fetch the prior studies based on the patientID if the
-      // server can respond.
       try {
         qidoStudiesForPatient = await getStudiesForPatientByMRN(qidoForStudyUID);
       } catch (error) {
@@ -175,10 +188,6 @@ function PanelStudyBrowserAi({
 
     if (!hasLoadedViewports) {
       if (activeViewportId) {
-        // Once there is an active viewport id, it means the layout is ready
-        // so wait a bit of time to allow the viewports preferential loading
-        // which improves user experience of responsiveness significantly on slower
-        // systems.
         window.setTimeout(() => setHasLoadedViewports(true), 250);
       }
 
@@ -360,16 +369,6 @@ function PanelStudyBrowserAi({
       // Parse the JSON response
       const result = await response.json();
       console.log('Diagnosis Result:', result);
-
-      // Convert base64 to Blob
-      //const mimeType = 'image/jpeg'; // Replace with the actual MIME type if known
-      //const fullBase64String = `data:${mimeType};base64,${result.detection_image}`; // Add the MIME type back
-
-      // Convert base64 string to Blob
-      // const a = await fetch(`data:image/jpeg;base64,${response['detection_image']}`); // Adjust MIME type if necessary
-      // const blob = await a.blob(); // Convert to Blob
-      // setBlobUrl(blob);
-      // Convert base64 to Blob
       const blob = result.detection_image; // Adjust MIME type if necessary
       console.log('blob', blob);
       setBlobUrl(blob);
@@ -402,11 +401,25 @@ function PanelStudyBrowserAi({
             {
               role: 'user',
               content: [
-                { type: 'text', text: 'Create and X-ray report based on the following image' },
+                {
+                  type: 'text',
+                  text: 'Do an report.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report',
+                },
+                { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
+                { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
+                { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
                 {
                   type: 'image_url',
                   image_url: { url: 'data:image/jpeg;base64,' + base64Image },
                 },
+                {
+                  type: 'image_url',
+                  image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
+                },
+                // {
+                //   type: 'image_Detection',
+                //   image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
+                // },
               ],
             },
           ],
@@ -420,8 +433,23 @@ function PanelStudyBrowserAi({
       const json = await response.json();
 
       const output = json.choices[0].message.content;
+      setReportOutput(output);
       console.log(output);
     }
+  };
+
+  const onContinue = () => {
+    handlePerformAIReporting();
+    // setCurrentPage(1);
+  };
+  const closeDialog = () => {
+    setIsDialogOpen(false); // Function to close the dialog
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    doc.text(reportOutput || 'No report available', 10, 10); // Add reportOutput to the PDF
+    doc.save('patient_report.pdf'); // Save the PDF with a filename
   };
 
   return (
@@ -459,7 +487,84 @@ function PanelStudyBrowserAi({
       />
       <div className="flex flex-col gap-4 text-xl font-bold">
         <Button onClick={handlePerformAIDiagnosis}>Perform AI Diagnosis</Button>
-        <Button onClick={handlePerformAIReporting}>Perform AI Reporting</Button>
+        <AlertDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+        >
+          <AlertDialogTrigger>
+            <Button className="w-5/6 rounded-md pr-6">Perform AI Reporting</Button>
+          </AlertDialogTrigger>
+          {currentPage === 0 ? (
+            <AlertDialogContent className="max-w-[850px]">
+              <AlertDialogHeader>
+                <AlertDialogDescription>
+                  <div className="relative space-y-2 text-2xl">
+                    <p className="text-3xl">Patient Report Information</p>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <label>Patient Name:</label>
+                        <input
+                          value={PatientName}
+                          className="col-span-2"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <label>Patient ID:</label>
+                        <input
+                          value={PatientID}
+                          className="col-span-2"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <label>Date of Birth:</label>
+                        <input
+                          value={PatientDOB}
+                          className="col-span-2"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <label>Sex:</label>
+                        <input
+                          value={PatientSex}
+                          className="col-span-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <Button onClick={closeDialog}>Cancel</Button>
+                <Button onClick={onContinue}>Generate</Button>
+                <Button
+                  disabled={!reportOutput}
+                  onClick={() => setCurrentPage(1)}
+                >
+                  View Report
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          ) : (
+            <AlertDialogContent className="max-w-[1150px] space-y-2">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-xl text-white">Patient Report</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <div>
+                    <Textarea className="h-[680px] border-white text-lg text-white">
+                      {reportOutput}
+                    </Textarea>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter>
+                <Button onClick={() => setCurrentPage(0)}>Back</Button>
+                <Button onClick={handleDownloadPDF}>Download as PDF</Button>
+                <Button>Save Report</Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          )}
+        </AlertDialog>
       </div>
     </>
   );

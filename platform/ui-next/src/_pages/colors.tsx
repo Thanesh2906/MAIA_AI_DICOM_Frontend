@@ -8,19 +8,19 @@ function Colors() {
       <h2>Primary color</h2>
       <div className="row">
         <div className="example2">
-          <div className="bg-primary h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary"></div>
         </div>
         <div className="example2">
-          <div className="bg-primary/80 h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary/80"></div>
         </div>
         <div className="example2">
-          <div className="bg-primary/60 h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary/60"></div>
         </div>
         <div className="example2">
-          <div className="bg-primary/40 h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary/40"></div>
         </div>
         <div className="example2">
-          <div className="bg-primary/20 h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary/20"></div>
         </div>
         <div className="example2">
           <div className="bg-infosecondary h-16 w-16 rounded"></div>
@@ -61,46 +61,46 @@ function Colors() {
       <h2>Core colors</h2>
       <div className="row">
         <div className="example2">
-          <div className="bg-background h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-background"></div>
         </div>
         <div className="example2">
-          <div className="bg-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-foreground"></div>
         </div>
         <div className="example2">
-          <div className="bg-card h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-card"></div>
         </div>
         <div className="example2">
-          <div className="bg-card-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-card-foreground"></div>
         </div>
         <div className="example2">
-          <div className="bg-popover h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-popover"></div>
         </div>
         <div className="example2">
-          <div className="bg-popover-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-popover-foreground"></div>
         </div>
         <div className="example2">
-          <div className="bg-primary h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary"></div>
         </div>
         <div className="example2">
-          <div className="bg-primary-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-primary-foreground"></div>
         </div>
         <div className="example2">
-          <div className="bg-secondary h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-secondary"></div>
         </div>
         <div className="example2">
-          <div className="bg-secondary-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-secondary-foreground"></div>
         </div>
         <div className="example2">
-          <div className="bg-muted h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-muted"></div>
         </div>
         <div className="example2">
-          <div className="bg-muted-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-muted-foreground"></div>
         </div>
         <div className="example2">
-          <div className="bg-accent h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-accent"></div>
         </div>
         <div className="example2">
-          <div className="bg-accent-foreground h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-accent-foreground"></div>
         </div>
         <div className="example2">
           <div className="destructive h-16 w-16 rounded"></div>
@@ -109,20 +109,20 @@ function Colors() {
           <div className="destructive-foreground h-16 w-16 rounded"></div>
         </div>
         <div className="example2">
-          <div className="bg-border h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-border"></div>
         </div>
       </div>
 
       <h2>Borders</h2>
       <div className="row">
         <div className="example2">
-          <div className="bg-border h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-border"></div>
         </div>
         <div className="example2">
-          <div className="bg-input h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-input"></div>
         </div>
         <div className="example2">
-          <div className="bg-ring h-16 w-16 rounded"></div>
+          <div className="h-16 w-16 rounded bg-ring"></div>
         </div>
       </div>
     </main>

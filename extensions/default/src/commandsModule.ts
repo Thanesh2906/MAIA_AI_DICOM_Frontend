@@ -158,6 +158,7 @@ const commandsModule = ({
           });
 
         if (activeStudyUID) {
+          console.log('Setting active study UID', activeStudyUID);
           hangingProtocolService.setActiveStudyUID(activeStudyUID);
         }
 

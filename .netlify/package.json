@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "netlify-cli": "^2.21.0"
+  },
+  "dependencies": {
+    "root": "file:"
   }
 }

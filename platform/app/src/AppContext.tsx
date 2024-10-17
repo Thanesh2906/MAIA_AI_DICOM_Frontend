@@ -8,6 +8,18 @@ const AppContext = createContext<
       setBlobUrl: (url: null | string) => void;
       blobbing: boolean;
       setBlobbing: (blobbing: boolean) => void;
+      patientInfo: {
+        PatientName: string;
+        PatientID: string;
+        PatientSex: string;
+        PatientDOB: string;
+      };
+      setPatientInfo: (patientInfo: {
+        PatientName: string;
+        PatientID: string;
+        PatientSex: string;
+        PatientDOB: string;
+      }) => void;
     }
   | undefined
 >(undefined); // Specify context type
@@ -16,8 +28,23 @@ const AppContext = createContext<
 export const AppProvider = ({ children }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null); // Specify state type
   const [blobbing, setBlobbing] = useState<boolean>(false);
+  const [patientInfo, setPatientInfo] = useState({
+    PatientName: '',
+    PatientID: '',
+    PatientSex: '',
+    PatientDOB: '',
+  });
   return (
-    <AppContext.Provider value={{ blobUrl, setBlobUrl, blobbing, setBlobbing }}>
+    <AppContext.Provider
+      value={{
+        blobUrl,
+        setBlobUrl,
+        blobbing,
+        setBlobbing,
+        patientInfo,
+        setPatientInfo,
+      }}
+    >
       {children} {/* Fix the children placement here */}
     </AppContext.Provider>
   );

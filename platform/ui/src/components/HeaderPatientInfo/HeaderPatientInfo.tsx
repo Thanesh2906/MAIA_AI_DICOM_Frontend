@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Icon } from '@ohif/ui';
 import { utils } from '@ohif/core';
 import { PatientInfoVisibility } from '../../types';
+import { useAppContext } from '../../../../app/src/AppContext';
 
 const { formatDate, formatPN } = utils;
 
@@ -13,15 +14,10 @@ const formatWithEllipsis = (str, maxLength) => {
   return str;
 };
 
-function usePatientInfo(servicesManager: AppTypes.ServicesManager) {
+export function usePatientInfo(servicesManager: AppTypes.ServicesManager) {
   const { displaySetService } = servicesManager.services;
 
-  const [patientInfo, setPatientInfo] = useState({
-    PatientName: '',
-    PatientID: '',
-    PatientSex: '',
-    PatientDOB: '',
-  });
+  const { patientInfo, setPatientInfo } = useAppContext();
   const [isMixedPatients, setIsMixedPatients] = useState(false);
   const displaySets = displaySetService.getActiveDisplaySets();
 
@@ -76,6 +72,7 @@ function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
     appConfig.showPatientInfo === PatientInfoVisibility.VISIBLE_READONLY;
   const [expanded, setExpanded] = useState(initialExpandedState);
   const { patientInfo, isMixedPatients } = usePatientInfo(servicesManager);
+  console.log('patientInfooo', patientInfo);
 
   useEffect(() => {
     if (isMixedPatients && expanded) {

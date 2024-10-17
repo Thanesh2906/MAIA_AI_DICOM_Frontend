@@ -90,6 +90,7 @@ Cypress.Commands.add('waitQueryList', () => {
 Cypress.Commands.add('openStudyModality', Modality => {
   cy.initRouteAliases();
   cy.visit('/');
+  console.log('Modality', Modality);
 
   cy.get('#filter-accessionOrModalityOrDescription').type(Modality).waitQueryList();
 
@@ -106,6 +107,7 @@ Cypress.Commands.add('isPageLoaded', (url = '/basic-test') => {
 });
 
 Cypress.Commands.add('openStudyList', () => {
+  console.log('Opening study list');
   cy.initRouteAliases();
   cy.visit('/', { timeout: 15000 });
 
@@ -239,6 +241,7 @@ Cypress.Commands.add('initCommonElementsAliases', skipMarkers => {
 
 //Initialize aliases for Routes
 Cypress.Commands.add('initRouteAliases', () => {
+  console.log('Initializing route aliases');
   initRouteAliases();
 });
 
