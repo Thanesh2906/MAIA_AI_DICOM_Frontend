@@ -64,6 +64,8 @@ function PanelStudyBrowserAi({
   const [reportOutput, setReportOutput] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [detectionLabel, setdetectionLabel] = useState(null);
+
   console.log('patientInfo', patientInfo);
 
   // multiple can be true or false
@@ -365,6 +367,7 @@ function PanelStudyBrowserAi({
       const result = await response.json();
       console.log('Diagnosis Result:', result);
       const blob = result.detection_image; // Adjust MIME type if necessary
+      setdetectionLabel(result.detection_label);
       console.log('blob', blob);
       setBlobUrl(blob);
       setBlobbing(true);
@@ -403,6 +406,7 @@ function PanelStudyBrowserAi({
                 { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
                 { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
                 { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
+                { type: 'text', text: 'Fractures' + detectionLabel },
                 {
                   type: 'image_url',
                   image_url: { url: 'data:image/jpeg;base64,' + base64Image },
@@ -427,8 +431,9 @@ function PanelStudyBrowserAi({
       console.log('response', response);
       const json = await response.json();
 
-      const output = json.choices[0].message.content;
+      const output = json.choices[0].message.content.replace(/\*/g, '').trim();
       setReportOutput(output);
+
       console.log(output);
     }
   };
@@ -521,6 +526,14 @@ function PanelStudyBrowserAi({
                         <label>Sex:</label>
                         <input
                           value={PatientSex}
+                          className="col-span-2"
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <label>Short Diagnosis:</label>
+                        <input
+                          value={detectionLabel}
+                          onChange={e => setdetectionLabel(e.target.value)}
                           className="col-span-2"
                         />
                       </div>
