@@ -13,8 +13,6 @@ import { Button } from '@ohif/ui';
 import { useAppContext } from '../../../../../platform/app/src/AppContext';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -45,7 +43,6 @@ function PanelStudyBrowserAi({
     servicesManager.services;
   const navigate = useNavigate();
   const [appConfig] = useAppConfig();
-
   const { StudyInstanceUIDs } = useImageViewer();
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
     useViewportGrid();
@@ -57,11 +54,9 @@ function PanelStudyBrowserAi({
   const [studyDisplayList, setStudyDisplayList] = useState([]);
   const [displaySets, setDisplaySets] = useState([]);
   const [thumbnailImageSrcMap, setThumbnailImageSrcMap] = useState({});
-
   const [viewPresets, setViewPresets] = useState(
     customizationService.getCustomization('studyBrowser.viewPresets')?.value || defaultViewPresets
   );
-
   const [actionIcons, setActionIcons] = useState(defaultActionIcons);
   const [clickedImage, setClickedImage] = useState(null);
   const { blobUrl, setBlobUrl, setBlobbing, patientInfo } = useAppContext();
@@ -244,7 +239,7 @@ function PanelStudyBrowserAi({
         // if (!hasLoadedViewports) {
         //   return;
         // }
-        const { displaySetsAdded, options } = data;
+        const { displaySetsAdded } = data;
         displaySetsAdded.forEach(async dSet => {
           const newImageSrcEntry = {};
           const displaySet = displaySetService.getDisplaySetByUID(dSet.displaySetInstanceUID);

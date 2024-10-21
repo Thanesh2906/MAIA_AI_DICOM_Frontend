@@ -142,6 +142,8 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
   const elementRef = useRef() as React.MutableRefObject<HTMLDivElement>;
   const [appConfig] = useAppConfig();
   const { blobUrl, blobbing } = useAppContext();
+  const blob = base64ToBlob(blobUrl);
+  const url = URL.createObjectURL(blob);
 
   const {
     displaySetService,
@@ -407,9 +409,6 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
     onResize,
   });
 
-  const blob = base64ToBlob(blobUrl);
-  const url = URL.createObjectURL(blob);
-
   if (blobbing === true) {
     return (
       <React.Fragment>
@@ -418,13 +417,13 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
             <img
               src={url}
               alt="Blob content"
-              //className=""
-              style={{ height: '100%', width: '100%' }}
+              className="mx-[17%] my-[3%] h-[85vh] w-[100vh] object-fill"
+              // Maintain aspect ratio
+
               // onContextMenu={e => e.preventDefault()}
               // onMouseDown={e => e.preventDefault()}
             />
           </div>
-
           <CornerstoneOverlays
             viewportId={viewportId}
             toolBarService={toolbarService}
