@@ -65,6 +65,7 @@ function PanelStudyBrowserAi({
   const [currentPage, setCurrentPage] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [detectionLabel, setdetectionLabel] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   console.log('patientInfo', patientInfo);
 
@@ -438,12 +439,20 @@ function PanelStudyBrowserAi({
     }
   };
 
-  const onContinue = () => {
-    handlePerformAIReporting();
-    // setCurrentPage(1);
+  const onContinue = async () => {
+    // {{ edit_2 }}
+    setIsGenerating(true); // Start generating
+    await handlePerformAIReporting(); // Wait for the report to be generated
+    setIsGenerating(false); // Stop generating
   };
+
   const closeDialog = () => {
     setIsDialogOpen(false); // Function to close the dialog
+  };
+  const handleSaveReport = () => {
+    // {{ edit_1 }}
+    // Logic to save the report can be implemented here
+    console.log('Report saved:', reportOutput);
   };
 
   const handleDownloadPDF = () => {
@@ -543,7 +552,7 @@ function PanelStudyBrowserAi({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <Button onClick={closeDialog}>Cancel</Button>
-                <Button onClick={onContinue}>Generate</Button>
+                <Button onClick={onContinue}>{isGenerating ? 'Generating...' : 'Generate'}</Button>
                 <Button
                   disabled={!reportOutput}
                   onClick={() => setCurrentPage(1)}
@@ -558,9 +567,11 @@ function PanelStudyBrowserAi({
                 <AlertDialogTitle className="text-xl text-white">Patient Report</AlertDialogTitle>
                 <AlertDialogDescription>
                   <div>
-                    <Textarea className="h-[680px] border-white text-lg text-white">
-                      {reportOutput}
-                    </Textarea>
+                    <Textarea
+                      className="h-[680px] border-white text-lg text-white"
+                      value={reportOutput} // {{ edit_2 }}
+                      onChange={e => setReportOutput(e.target.value)} // {{ edit_3 }}
+                    />
                   </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -568,7 +579,7 @@ function PanelStudyBrowserAi({
               <AlertDialogFooter>
                 <Button onClick={() => setCurrentPage(0)}>Back</Button>
                 <Button onClick={handleDownloadPDF}>Download as PDF</Button>
-                <Button>Save Report</Button>
+                <Button onClick={handleSaveReport}>Save Report</Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           )}
