@@ -5,7 +5,7 @@ import getImageSrcFromImageId from '../../../extensions/default/src/Panels/getIm
 import getStudiesForPatientByMRN from '../../../extensions/default/src/Panels/getStudiesForPatientByMRN';
 import requestDisplaySetCreationForStudy from '../../../extensions/default/src/Panels/requestDisplaySetCreationForStudy';
 
-/**
+/**=
  * Wraps the PanelStudyBrowser and provides features afforded by managers/services
  *
  * @param {object} params
