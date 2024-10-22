@@ -401,12 +401,12 @@ function PanelStudyBrowserAi({
               content: [
                 {
                   type: 'text',
-                  text: 'Do an report.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report',
+                  text: 'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.',
                 },
                 { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
                 { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
                 { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
-                { type: 'text', text: 'Fractures' + detectionLabel },
+                { type: 'text', text: 'Short Diagnosis' + detectionLabel },
                 {
                   type: 'image_url',
                   image_url: { url: 'data:image/jpeg;base64,' + base64Image },
