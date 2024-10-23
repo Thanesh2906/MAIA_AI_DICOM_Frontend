@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 
@@ -6,6 +6,15 @@ import LegacyButton from '../LegacyButton';
 import Icon from '../Icon';
 import Typography from '../Typography';
 import InputGroup from '../InputGroup';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTrigger,
+} from '../../../../../component/alert-dialog';
+import { Button } from '@ohif/ui';
 
 const StudyListFilter = ({
   filtersMeta,
@@ -19,7 +28,11 @@ const StudyListFilter = ({
 }) => {
   const { t } = useTranslation('StudyList');
   const { sortBy, sortDirection } = filterValues;
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const isMounted = useRef(true);
   const filterSorting = { sortBy, sortDirection };
+
   const setFilterSorting = sortingValues => {
     onChange({
       ...filterValues,
@@ -28,11 +41,127 @@ const StudyListFilter = ({
   };
   const isSortingEnabled = numOfStudies > 0 && numOfStudies <= 100;
 
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const closeDialog = () => {
+    setIsDialogOpen(false); // Function to close the dialog
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleFilesDrop = async files => {
+    await handleFileUpload(Array.from(files));
+  };
+
+  const handleFileUpload = async files => {
+    setIsUploading(true);
+
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files[]', file);
+    });
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    try {
+      const response = await fetch('http://localhost:5000/uploadDicom', {
+        method: 'POST',
+        body: formData,
+        signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error("Erreur lors de l'envoi des fichiers:", error);
+      }
+    } finally {
+      if (isMounted.current) {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handleDrop = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesDrop(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  };
+
+  const handleDragOver = e => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleChange = e => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFilesDrop(e.target.files);
+    }
+  };
+
+  const handleClick = () => {
+    fileInputRef.current.click();
+  };
+
   return (
     <React.Fragment>
       <div>
         <div className="bg-black">
           <div className="container relative mx-auto flex flex-col pt-5">
+            <div className="flex flex-row justify-end">
+              <AlertDialog
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+              >
+                <AlertDialogTrigger>
+                  <Button className="mr-6 rounded-md">Upload Study</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-[850px]">
+                  <AlertDialogHeader>
+                    <AlertDialogDescription>
+                      <div className="text-center">
+                        <button
+                          onClick={handleClick}
+                          className={`mb-4 rounded bg-blue-500 py-2 px-4 font-bold text-white hover:bg-blue-700 ${isUploading ? 'cursor-not-allowed opacity-50' : ''}`}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? 'Progress in processing ...' : 'Select files'}
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          multiple
+                          style={{ display: 'none' }}
+                          onChange={handleChange}
+                          disabled={isUploading}
+                        />
+                        <div
+                          className={`border-2 border-dashed border-gray-300 p-10 ${isUploading ? 'opacity-50' : ''}`}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                        >
+                          Drag and drop DICOM files here.
+                        </div>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <Button onClick={closeDialog}>Cancel</Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
             <div className="mb-5 flex flex-row justify-between">
               <div className="flex min-w-[1px] shrink flex-row items-center gap-6">
                 <Typography
@@ -99,7 +228,9 @@ const StudyListFilter = ({
         {numOfStudies > 100 && (
           <div className="container m-auto">
             <div className="bg-primary-main rounded-b py-1 text-center text-base">
-              <p className="text-white">{t('Filter list to 100 studies or less to enable sorting')}</p>
+              <p className="text-white">
+                {t('Filter list to 100 studies or less to enable sorting')}
+              </p>
             </div>
           </div>
         )}

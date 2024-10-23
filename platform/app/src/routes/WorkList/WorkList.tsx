@@ -357,16 +357,16 @@ function WorkList({
           <div className="flex flex-row gap-2">
             {(appConfig.groupEnabledModesFirst
               ? appConfig.loadedModes.sort((a, b) => {
-                  const isValidA = a.isValidMode({
-                    modalities: modalities.replaceAll('/', '\\'),
-                    study,
-                  }).valid;
-                  const isValidB = b.isValidMode({
-                    modalities: modalities.replaceAll('/', '\\'),
-                    study,
-                  }).valid;
+                  // Prioritize AI Analysis mode
+                  if (a.displayName === 'AI Analysis') {
+                    return -1;
+                  }
+                  if (b.displayName === 'AI Analysis') {
+                    return 1;
+                  }
 
-                  return isValidB - isValidA;
+                  // Sort alphabetically
+                  return a.displayName.localeCompare(b.displayName);
                 })
               : appConfig.loadedModes
             ).map((mode, i) => {
@@ -411,7 +411,7 @@ function WorkList({
                       disabled={!isValidMode}
                       startIconTooltip={
                         !isValidMode ? (
-                          <div className="font-inter flex w-[206px] whitespace-normal text-left text-xs font-normal text-white	">
+                          <div className="font-inter flex w-[206px] whitespace-normal text-left text-xs font-normal text-white">
                             {invalidModeDescription}
                           </div>
                         ) : null
@@ -432,6 +432,16 @@ function WorkList({
                 )
               );
             })}
+            <Icon
+              name="pencil"
+              style={{ minWidth: '24px', cursor: 'pointer' }}
+              className="ml-4 w-3 text-yellow-500"
+            />
+            <Icon
+              name="old-trash"
+              style={{ minWidth: '18px', cursor: 'pointer' }}
+              className="ml-4 w-3 text-red-500"
+            />
           </div>
         </StudyListExpandedRow>
       ),
