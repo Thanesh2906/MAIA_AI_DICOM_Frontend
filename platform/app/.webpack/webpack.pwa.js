@@ -82,14 +82,6 @@ module.exports = (env, argv) => {
         ),
         path.resolve(__dirname, 'maia-modes/ai-analysis/node_modules'),
         path.resolve(__dirname, 'maia-extensions/ai/node_modules'),
-        path.resolve(
-          __dirname,
-          'C:/Users/nabilla/Documents/GitHub/MAIA/MAIA_AI_DICOM_Frontend/maia-modes/ai-analysis/node_modules'
-        ),
-        path.resolve(
-          __dirname,
-          'C:/Users/nabilla/Documents/GitHub/MAIA/MAIA_AI_DICOM_Frontend/maia-extensions/ai/node_modules'
-        ),
       ],
     },
     plugins: [
