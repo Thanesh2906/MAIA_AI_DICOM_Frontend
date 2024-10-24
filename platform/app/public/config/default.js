@@ -25,7 +25,7 @@ window.config = {
     prefetch: 25,
   },
   // filterQueryParam: false,
-  defaultDataSourceName: 'dicomweb',
+  defaultDataSourceName: 'orthanc',
   /* Dynamic config allows user to pass "configUrl" query string this allows to load config without recompiling application. The regex will ensure valid configuration source */
   // dangerouslyUseDynamicConfig: {
   //   enabled: true,
@@ -37,6 +37,32 @@ window.config = {
   //   regex: /.*/,
   // },
   dataSources: [
+    {
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+      sourceName: 'orthanc',
+      configuration: {
+        friendlyName: 'cast Orthanc DICOMWeb Server',
+        name: 'castorthanc',
+        wadoUriRoot: 'http://orthanc.zairiz.com:8042/wado',
+        qidoRoot: 'http://orthanc.zairiz.com:8042/dicom-web',
+        wadoRoot: 'http://orthanc.zairiz.com:8042/dicom-web',
+        authorizationHeaders: {
+          Authorization: 'Basic b3J0aGFuYzpvcnRoYW5j',
+        },
+        qidoSupportsIncludeField: true,
+        supportsReject: true,
+        imageRendering: 'wadors',
+        thumbnailRendering: 'wadors',
+        enableStudyLazyLoad: true,
+        supportsFuzzyMatching: true,
+        supportsWildcard: true,
+        dicomUploadEnabled: true,
+        omitQuotationForMultipartRequest: true,
+        bulkDataURI: {
+          enabled: true,
+        },
+      },
+    },
     {
       namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
       sourceName: 'dicomweb',
