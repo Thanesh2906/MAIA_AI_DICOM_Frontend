@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useImageViewer, useViewportGrid } from '@ohif/ui';
 import { StudyBrowser as NewStudyBrowser, Popover } from '@ohif/ui-next';
 import { StudyBrowser as OldStudyBrowser } from '@ohif/ui';
-import { utils } from '@ohif/core';
+import { utils, DicomMetadataStore, DisplaySetService } from '@ohif/core';
 import { useAppConfig } from '@state';
 import { useNavigate } from 'react-router-dom';
 import { Separator } from '@ohif/ui-next';
@@ -13,6 +13,8 @@ import { Button } from '@ohif/ui';
 import { useAppContext } from '../../../../../platform/app/src/AppContext';
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -22,6 +24,10 @@ import {
 } from '../../../../../component/alert-dialog';
 import { Textarea } from '../../../../../component/textarea';
 import jsPDF from 'jspdf';
+import axios from 'axios';
+import fs from 'fs';
+import FormData from 'form-data';
+import dcmjs from 'dcmjs';
 
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
@@ -37,7 +43,7 @@ function PanelStudyBrowserAi({
   dataSource,
   renderHeader,
   getCloseIcon,
-  tab,
+  tab
 }: withAppTypes) {
   const { hangingProtocolService, displaySetService, uiNotificationService, customizationService } =
     servicesManager.services;
@@ -57,6 +63,7 @@ function PanelStudyBrowserAi({
   const [viewPresets, setViewPresets] = useState(
     customizationService.getCustomization('studyBrowser.viewPresets')?.value || defaultViewPresets
   );
+
   const [actionIcons, setActionIcons] = useState(defaultActionIcons);
   const [clickedImage, setClickedImage] = useState(null);
   const { blobUrl, setBlobUrl, setBlobbing, patientInfo } = useAppContext();
@@ -66,7 +73,7 @@ function PanelStudyBrowserAi({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [detectionLabel, setdetectionLabel] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-
+  const [iid, setIid] = useState('');
   console.log('patientInfo', patientInfo);
 
   // multiple can be true or false
@@ -108,6 +115,7 @@ function PanelStudyBrowserAi({
 
       // Assuming you want to get the middle image ID
       const imageId = imageIds[Math.floor(imageIds.length / 2)];
+      setIid(imageId);
       console.log('imageId', imageId);
 
       // Use getImageSrc to get the actual image source
@@ -129,6 +137,225 @@ function PanelStudyBrowserAi({
 
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
     console.log('updatedViewports', updatedViewports);
+  };
+
+  async function getDicomMetadata(instanceId: string) {
+    try {
+      const response = await axios.get(
+        `http://orthanc.zairiz.com:8042/instances/${instanceId}/content`,
+        {
+          auth: {
+            username: 'orthanc',
+            password: 'orthanc',
+          },
+        }
+      );
+
+      console.log('DICOM metadata retrieved successfully.');
+      return response.data;
+    } catch (error) {
+      console.error('Error retrieving DICOM metadata:', error);
+      return null;
+    }
+  }
+
+  // Function to download a DICOM instance from Orthanc
+  async function downloadDicomFromOrthanc(instanceId: string, outputFilePath: string) {
+    try {
+      const response = await axios({
+        method: 'GET',
+        url: `http://orthanc.zairiz.com:8042/instances/${instanceId}/file`,
+        responseType: 'blob',
+        headers: {
+          Accept: 'application/dicom',
+        },
+        auth: {
+          username: 'orthanc',
+          password: 'orthanc',
+        },
+      });
+
+      // Create a Blob from the response data
+      const blob = new Blob([response.data], { type: 'application/dicom' });
+
+      // Create a temporary URL for the Blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor element
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = outputFilePath.split('/').pop() || 'download.dcm'; // Use the filename from outputFilePath or a default
+
+      // Append to the document, trigger click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Release the URL object
+      window.URL.revokeObjectURL(url);
+
+      console.log('DICOM file download initiated');
+    } catch (error) {
+      console.error('Error downloading DICOM file from Orthanc:', error);
+    }
+  }
+
+  // Function to add a report string to a DICOM file
+  async function addReportToDicom(dicomFilePath: string, outputFilePath: string, report: string) {
+    // Read the DICOM file as a buffer
+    const dicomFileBuffer = fs.readFileSync(dicomFilePath);
+
+    // Parse the DICOM file using dcmjs
+    const dicomData = dcmjs.data.DicomMessage.readFile(dicomFileBuffer);
+    const dataset = dicomData.dict;
+
+    // Define a private tag (e.g., (0x0011, 0x1000))
+    const privateTag = 'x00111000'; // Hex representation of (0x0011, 0x1000)
+
+    // Add the report string to the private tag
+    dataset[privateTag] = {
+      vr: 'LT', // Long Text (LT) for the report
+      Value: [report],
+    };
+
+    // Write the modified DICOM data back to a file
+    const modifiedDicomBuffer = dcmjs.data.DicomMessage.writeFile(dicomData);
+    fs.writeFileSync(outputFilePath, Buffer.from(modifiedDicomBuffer));
+
+    console.log('DICOM file updated with report.');
+  }
+
+  async function extractReportFromMetadata(instanceId: string) {
+    const metadata = await getDicomMetadata(instanceId);
+    if (metadata) {
+      // Assuming the report was stored in private tag (0x0011, 0x1000)
+      const privateTag = '00111000'; // Hex representation without 'x' prefix
+
+      // Check if the private tag exists in the metadata
+      if (metadata[privateTag]) {
+        const report = metadata[privateTag].Value[0]; // Extract the report string
+        console.log('Report extracted from DICOM:', report);
+      } else {
+        console.log('Report not found in the DICOM metadata.');
+      }
+    }
+  }
+
+  async function uploadDicomToOrthanc(dicomFilePath: string) {
+    const dicomFile = fs.createReadStream(dicomFilePath);
+    const form = new FormData();
+    form.append('file', dicomFile);
+
+    try {
+      const response = await axios.post('http://orthanc.zairiz.com:8042/instances', form, {
+        headers: form.getHeaders(),
+        auth: {
+          username: 'orthanc',
+          password: 'orthanc',
+        },
+      });
+
+      // The response will contain the instance ID and other details
+      const instanceId = response.data.ID;
+      console.log('DICOM file uploaded successfully. Instance ID:', instanceId);
+
+      // Forward the user to the updated DICOM file
+      return instanceId; // You can return this instance ID for further use
+    } catch (error) {
+      console.error('Error uploading DICOM file to Orthanc:', error);
+    }
+  }
+
+  async function replaceDicomInstance(instanceId: string, dicomFilePath: string) {
+    // First, delete the existing instance
+    try {
+      await axios.delete(`http://orthanc.zairiz.com:8042/instances/${instanceId}`, {
+        auth: {
+          username: 'orthanc',
+          password: 'orthanc',
+        },
+      });
+
+      console.log(`DICOM instance ${instanceId} deleted successfully.`);
+    } catch (error) {
+      console.error(`Error deleting DICOM instance ${instanceId}`, error);
+      return null;
+    }
+
+    // Upload the new DICOM file (encapsulated PDF)
+    const new_instance_id = await uploadDicomToOrthanc(dicomFilePath);
+    return new_instance_id;
+  }
+
+  const getCurrentInstance = () => {
+    // Access the active display set from the DisplaySetService
+    const displaySetService = DisplaySetService;
+    const activeDisplaySet = displaySetService.getActiveDisplaySet();
+
+    if (activeDisplaySet) {
+      // Get the currently selected instance from the active display set
+      const currentInstance = activeDisplaySet.getActiveInstance();
+
+      if (currentInstance) {
+        console.log('Currently opened instance:', currentInstance);
+        return currentInstance;
+      } else {
+        console.log('No instance is currently opened in the active display set.');
+        return null;
+      }
+    } else {
+      console.log('No active display set found.');
+      return null;
+    }
+  };
+
+  const getSOPInstanceUID = () => {
+    // Access a loaded study's metadata
+    try {
+      const instance = DicomMetadataStore.getInstanceByImageId(iid);
+      console.log(instance);
+      console.log(instance.SOPInstanceUID);
+      const result: string = instance.SOPInstanceUID;
+      return result;
+    } catch {
+      console.log(`No instance found`);
+    }
+  };
+
+  const getInstanceIdBySOPInstanceUID = async (
+    orthancUrl: string,
+    sopInstanceUID: string
+  ): Promise<string | null> => {
+    try {
+      // Fetch all instances
+      const instancesResponse = await axios.get(`${orthancUrl}/instances`);
+      console.log('instanceResponse:', instancesResponse.data);
+
+      // Check if instances were found
+      if (instancesResponse.data && instancesResponse.data.length > 0) {
+        // Iterate over the instances
+        for (const instance of instancesResponse.data) {
+          // Fetch details for each instance
+          const instanceDetailsResponse = await axios.get(`${orthancUrl}/instances/${instance}`);
+
+          // Check if SOPInstanceUID matches
+          if (
+            instanceDetailsResponse.data &&
+            instanceDetailsResponse.data.MainDicomTags.SOPInstanceUID === sopInstanceUID
+          ) {
+            return instance; // Return the matching instance ID
+          }
+        }
+        console.log('No matching instance found for the given SOPInstanceUID.');
+        return null;
+      } else {
+        console.log('No instances found in the Orthanc server.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching instances:', error);
+      return null;
+    }
   };
 
   // ~~ studyDisplayList
@@ -242,7 +469,7 @@ function PanelStudyBrowserAi({
         // if (!hasLoadedViewports) {
         //   return;
         // }
-        const { displaySetsAdded } = data;
+        const { displaySetsAdded, options } = data;
         displaySetsAdded.forEach(async dSet => {
           const newImageSrcEntry = {};
           const displaySet = displaySetService.getDisplaySetByUID(dSet.displaySetInstanceUID);
@@ -369,6 +596,7 @@ function PanelStudyBrowserAi({
       console.log('Diagnosis Result:', result);
       const blob = result.detection_image; // Adjust MIME type if necessary
       setdetectionLabel(result.detection_label);
+
       console.log('blob', blob);
       setBlobUrl(blob);
       setBlobbing(true);
@@ -408,6 +636,7 @@ function PanelStudyBrowserAi({
                 { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
                 { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
                 { type: 'text', text: 'Short Diagnosis' + detectionLabel },
+
                 {
                   type: 'image_url',
                   image_url: { url: 'data:image/jpeg;base64,' + base64Image },
@@ -434,7 +663,6 @@ function PanelStudyBrowserAi({
 
       const output = json.choices[0].message.content.replace(/\*/g, '').trim();
       setReportOutput(output);
-
       console.log(output);
     }
   };
@@ -445,20 +673,49 @@ function PanelStudyBrowserAi({
     await handlePerformAIReporting(); // Wait for the report to be generated
     setIsGenerating(false); // Stop generating
   };
-
   const closeDialog = () => {
     setIsDialogOpen(false); // Function to close the dialog
   };
-  const handleSaveReport = () => {
-    // {{ edit_1 }}
-    // Logic to save the report can be implemented here
-    console.log('Report saved:', reportOutput);
-  };
+
+  function getInstanceIdFromUrl(): string | null {
+    // Extract the URL path
+    const url = window.location.pathname;
+
+    // Split the URL into parts
+    const urlSegments = url.split('/');
+
+    // Assuming the SOPInstanceUID is the last part of the URL
+    const sopInstanceUid = urlSegments[urlSegments.length - 1];
+
+    return sopInstanceUid;
+  }
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
     doc.text(reportOutput || 'No report available', 10, 10); // Add reportOutput to the PDF
     doc.save('patient_report.pdf'); // Save the PDF with a filename
+  };
+
+  const handleSaveReport = async () => {
+    console.log(StudyInstanceUIDs);
+    const input1: string = StudyInstanceUIDs[0];
+    const sopInstanceUID = await getSOPInstanceUID();
+    console.log('sopInstanceUID', sopInstanceUID);
+    const input2: string = await getInstanceIdBySOPInstanceUID(
+      'http://orthanc.zairiz.com:8042/',
+      sopInstanceUID
+    );
+    console.log('input1: ', input1);
+    console.log('input2: ', input2);
+
+    const download_path = './temp/' + input1 + '.dcm';
+    const result_path = './temp/' + input1 + 'm.dcm';
+    await downloadDicomFromOrthanc(input2, download_path);
+    await addReportToDicom(input1, result_path, reportOutput);
+    const new_instance_id = await replaceDicomInstance(input1, result_path);
+    if (new_instance_id != null) {
+      navigate('http://localhost:3000/StudyInstanceUIDs=' + new_instance_id);
+    }
   };
 
   return (

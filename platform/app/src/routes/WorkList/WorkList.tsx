@@ -258,46 +258,24 @@ function WorkList({
   // };
 
   // Function to get the Study ID
-  const getStudyID = async patientName => {
-    const url = 'http://orthanc.zairiz.com:8043/tools/find';
-
-    const bodyData = {
-      Level: 'Study',
-      Expand: true,
-      Limit: 101,
-      Query: { PatientName: patientName },
-      Full: true,
-    };
-
+  const getStudyID = async studyInstanceUid => {
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          accept: 'application/json, text/javascript, */*; q=0.01',
-          'accept-language': 'en-GB,en;q=0.9,ta;q=0.8,en-US;q=0.7,ms;q=0.6',
-          'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-          'x-requested-with': 'XMLHttpRequest',
-          Referer: 'http://orthanc.zairiz.com:8043/app/explorer.html',
-          'Referrer-Policy': 'strict-origin-when-cross-origin',
-        },
-        body: JSON.stringify(bodyData), // Convert body data to JSON
-        mode: 'cors', // Use 'cors' to allow cross-origin requests
-      });
+      // Fetch the list of study IDs
+      const response = await fetch('http://orthanc.zairiz.com:8042/studies');
+      const studies = await response.json();
 
-      if (!response.ok) {
-        // const data = await response.json();
-        // if (data && data.length > 0) {
-        //   const studyID = data[0].ID; // Assuming the ID is present in the first element
-        //   console.log(studyID);
-        //   setStudyId(studyID);
-        // } else {
-        //   throw new Error('No studies found with the provided study_instance_uid');
-        // }
-        throw new Error(`Failed to fetch study ID. Status code: ${response.status}`);
+      // Iterate through each study to find the matching StudyInstanceUID
+      for (const study of studies) {
+        const studyResponse = await fetch(`http://orthanc.zairiz.com:8042/studies/${study}`);
+        const studyDetails = await studyResponse.json();
+
+        if (studyDetails.MainDicomTags.StudyInstanceUID === studyInstanceUid) {
+          console.log('study id:', study);
+          setStudyId(study); // Return the study ID if a match is found
+        }
       }
     } catch (error) {
       console.error('Error fetching study ID:', error.message);
-      return null;
     }
   };
 
@@ -591,7 +569,7 @@ function WorkList({
               open={isDialogOpen}
               onOpenChange={setIsDialogOpen}
             >
-              <AlertDialogTrigger onClick={() => getStudyID(patientName)}>
+              <AlertDialogTrigger onClick={() => getStudyID(studyInstanceUid)}>
                 <Icon
                   name="old-trash"
                   style={{ minWidth: '18px', cursor: 'pointer' }}
