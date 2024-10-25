@@ -268,10 +268,12 @@ function WorkList({
       for (const study of studies) {
         const studyResponse = await fetch(`http://orthanc.zairiz.com:8042/studies/${study}`);
         const studyDetails = await studyResponse.json();
+        console.log('test', studyDetails.ParentPatient);
 
         if (studyDetails.MainDicomTags.StudyInstanceUID === studyInstanceUid) {
-          console.log('study id:', study);
-          setStudyId(study); // Return the study ID if a match is found
+          console.log('study id:', studyDetails.ParentPatient);
+
+          setStudyId(studyDetails.ParentPatient); // Return the study ID if a match is found
         }
       }
     } catch (error) {
@@ -280,25 +282,18 @@ function WorkList({
   };
 
   // Function to delete the Study using the ID
-  const deleteStudy = async id => {
-    const url = `http://localhost:8042/studies/${id}`;
+  const deleteStudy = async () => {
+    const url = `http://orthanc.zairiz.com:8042/patients/${studyId}`;
 
     try {
       const response = await fetch(url, {
         method: 'DELETE',
-        headers: {
-          Accept: 'application/json, text/javascript, */*; q=0.01',
-          'Accept-Language': 'en-GB,en;q=0.9,ta;q=0.8,en-US;q=0.7,ms;q=0.6',
-          'X-Requested-With': 'XMLHttpRequest',
-          Referer: 'http://localhost:8042/app/explorer.html',
-          'Referrer-Policy': 'strict-origin-when-cross-origin',
-        },
       });
 
       if (!response.ok) {
         throw new Error(`Failed to delete study. Status code: ${response.status}`);
       }
-
+      window.location.reload();
       console.log('Study deleted successfully');
     } catch (error) {
       console.error('Error deleting study:', error.message);
@@ -584,13 +579,7 @@ function WorkList({
                   <AlertDialogFooter>
                     <Button onClick={closeDialogDelete}>No</Button>
 
-                    <Button
-                      onClick={() => {
-                        deleteStudy(studyId);
-                      }}
-                    >
-                      Yes
-                    </Button>
+                    <Button onClick={deleteStudy}>Yes</Button>
                   </AlertDialogFooter>
                 </AlertDialogHeader>
               </AlertDialogContent>

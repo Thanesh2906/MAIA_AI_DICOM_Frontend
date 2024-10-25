@@ -68,7 +68,7 @@ const StudyListFilter = ({
     const controller = new AbortController();
     const signal = controller.signal;
     try {
-      const response = await fetch('http://localhost:8042/instances', {
+      const response = await fetch('http://orthanc.zairiz.com:8043/instances', {
         method: 'POST',
         body: formData,
         mode: 'no-cors',
