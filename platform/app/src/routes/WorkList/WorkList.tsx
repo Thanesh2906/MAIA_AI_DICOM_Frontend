@@ -11,6 +11,16 @@ import filtersMeta from './filtersMeta.js';
 import { useAppConfig } from '@state';
 import { useDebounce, useSearchParams } from '@hooks';
 import { utils, hotkeys } from '@ohif/core';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../../../../component/alert-dialog';
+import { useAppContext } from '../../../../app/src/AppContext';
 
 import {
   Icon,
@@ -218,6 +228,7 @@ function WorkList({
         console.warn(ex);
       }
     };
+    console.log('try', studiesWithSeriesData);
 
     // TODO: WHY WOULD YOU USE AN INDEX OF 1?!
     // Note: expanded rows index begins at 1
@@ -234,6 +245,87 @@ function WorkList({
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedRows, studies]);
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // const { patientInfo, setPatientInfo } = useAppContext();
+  const [studyId, setStudyId] = useState();
+
+  const closeDialogDelete = () => {
+    setIsDialogOpen(false); // Function to close the dialog
+  };
+  // const closeDialogEdit = () => {
+  //   setIsDialogOpen(false); // Function to close the dialog
+  // };
+
+  // Function to get the Study ID
+  const getStudyID = async patientName => {
+    const url = 'http://orthanc.zairiz.com:8043/tools/find';
+
+    const bodyData = {
+      Level: 'Study',
+      Expand: true,
+      Limit: 101,
+      Query: { PatientName: patientName },
+      Full: true,
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json, text/javascript, */*; q=0.01',
+          'accept-language': 'en-GB,en;q=0.9,ta;q=0.8,en-US;q=0.7,ms;q=0.6',
+          'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'x-requested-with': 'XMLHttpRequest',
+          Referer: 'http://orthanc.zairiz.com:8043/app/explorer.html',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+        },
+        body: JSON.stringify(bodyData), // Convert body data to JSON
+        mode: 'cors', // Use 'cors' to allow cross-origin requests
+      });
+
+      if (!response.ok) {
+        // const data = await response.json();
+        // if (data && data.length > 0) {
+        //   const studyID = data[0].ID; // Assuming the ID is present in the first element
+        //   console.log(studyID);
+        //   setStudyId(studyID);
+        // } else {
+        //   throw new Error('No studies found with the provided study_instance_uid');
+        // }
+        throw new Error(`Failed to fetch study ID. Status code: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching study ID:', error.message);
+      return null;
+    }
+  };
+
+  // Function to delete the Study using the ID
+  const deleteStudy = async id => {
+    const url = `http://localhost:8042/studies/${id}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json, text/javascript, */*; q=0.01',
+          'Accept-Language': 'en-GB,en;q=0.9,ta;q=0.8,en-US;q=0.7,ms;q=0.6',
+          'X-Requested-With': 'XMLHttpRequest',
+          Referer: 'http://localhost:8042/app/explorer.html',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete study. Status code: ${response.status}`);
+      }
+
+      console.log('Study deleted successfully');
+    } catch (error) {
+      console.error('Error deleting study:', error.message);
+    }
+  };
 
   const isFiltering = (filterValues, defaultFilterValues) => {
     return !isEqual(filterValues, defaultFilterValues);
@@ -267,6 +359,8 @@ function WorkList({
       moment(time, ['HH', 'HHmm', 'HHmmss', 'HHmmss.SSS']).format(
         t('Common:localTimeFormat', 'hh:mm A')
       );
+
+    console.log('hi', study);
 
     return {
       dataCY: `studyRow-${studyInstanceUid}`,
@@ -432,16 +526,97 @@ function WorkList({
                 )
               );
             })}
-            <Icon
-              name="pencil"
-              style={{ minWidth: '24px', cursor: 'pointer' }}
-              className="ml-4 w-3 text-yellow-500"
-            />
-            <Icon
-              name="old-trash"
-              style={{ minWidth: '18px', cursor: 'pointer' }}
-              className="ml-4 w-3 text-red-500"
-            />
+            {/* <AlertDialog
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+            >
+              <AlertDialogTrigger>
+                <Icon
+                  name="pencil"
+                  style={{ minWidth: '24px', cursor: 'pointer' }}
+                  className="ml-4 w-3 text-yellow-500"
+                />
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-[850px]">
+                <AlertDialogHeader>
+                  <AlertDialogDescription>
+                    <div className="relative space-y-2 text-2xl">
+                      <p className="text-3xl">Patient Report Information</p>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <label>Patient Name:</label>
+                          <input
+                            value={patientInfo.PatientName}
+                            onChange={e => setPatientInfo.patientInfo.PatientName(e.target.value)} // {{ edit_1 }}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <label>Patient ID:</label>
+                          <input
+                            value={patientInfo.PatientID}
+                            onChange={e => setPatientID(e.target.value)} // {{ edit_2 }}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <label>Date of Birth:</label>
+                          <input
+                            value={patientInfo.PatientDOB}
+                            onChange={e => setPatientDOB(e.target.value)} // {{ edit_3 }}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <label>Sex:</label>
+                          <input
+                            value={patientInfo.PatientSex}
+                            onChange={e => PatientSex(e.target.value)} // {{ edit_4 }}
+                            className="col-span-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <Button onClick={closeDialogEdit}>Cancel</Button>
+
+                  <Button>Save Information</Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog> */}
+
+            <AlertDialog
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+            >
+              <AlertDialogTrigger onClick={() => getStudyID(patientName)}>
+                <Icon
+                  name="old-trash"
+                  style={{ minWidth: '18px', cursor: 'pointer' }}
+                  className="ml-4 w-3 text-red-500"
+                />
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-[400px]">
+                <AlertDialogHeader>
+                  <AlertDialogDescription>
+                    <p>Are you sure you want to delete this study? This action is irreversible.</p>
+                  </AlertDialogDescription>
+                  <AlertDialogFooter>
+                    <Button onClick={closeDialogDelete}>No</Button>
+
+                    <Button
+                      onClick={() => {
+                        deleteStudy(studyId);
+                      }}
+                    >
+                      Yes
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogHeader>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </StudyListExpandedRow>
       ),

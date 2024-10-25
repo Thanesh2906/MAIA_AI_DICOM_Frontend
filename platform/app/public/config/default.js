@@ -39,6 +39,32 @@ window.config = {
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+      sourceName: 'orthanc',
+      configuration: {
+        friendlyName: 'cast Orthanc DICOMWeb Server',
+        name: 'castorthanc',
+        wadoUriRoot: 'http://orthanc.zairiz.com:8042/wado',
+        qidoRoot: 'http://orthanc.zairiz.com:8042/dicom-web',
+        wadoRoot: 'http://orthanc.zairiz.com:8042/dicom-web',
+        authorizationHeaders: {
+          Authorization: 'Basic b3J0aGFuYzpvcnRoYW5j',
+        },
+        qidoSupportsIncludeField: true,
+        supportsReject: true,
+        imageRendering: 'wadors',
+        thumbnailRendering: 'wadors',
+        enableStudyLazyLoad: true,
+        supportsFuzzyMatching: true,
+        supportsWildcard: true,
+        dicomUploadEnabled: true,
+        omitQuotationForMultipartRequest: true,
+        bulkDataURI: {
+          enabled: true,
+        },
+      },
+    },
+    {
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
       sourceName: 'dicomweb',
       configuration: {
         friendlyName: 'Orthanc local',
@@ -54,6 +80,7 @@ window.config = {
         supportsWildcard: true,
         staticWado: true,
         singlepart: 'bulkdata,video',
+        origin: '*',
         // whether the data source should use retrieveBulkData to grab metadata,
         // and in case of relative path, what would it be relative to, options
         // are in the series level or study level (some servers like series some study)

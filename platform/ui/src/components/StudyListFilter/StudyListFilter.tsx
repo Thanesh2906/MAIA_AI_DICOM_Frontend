@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-
 import LegacyButton from '../LegacyButton';
 import Icon from '../Icon';
 import Typography from '../Typography';
@@ -68,15 +67,18 @@ const StudyListFilter = ({
 
     const controller = new AbortController();
     const signal = controller.signal;
-
     try {
-      const response = await fetch('http://localhost:5000/uploadDicom', {
+      const response = await fetch('http://localhost:8042/instances', {
         method: 'POST',
         body: formData,
+        mode: 'no-cors',
+        referrerPolicy: 'strict-origin-when-cross-origin',
         signal,
       });
 
       if (!response.ok) {
+        console.log('Upload successful', response);
+        window.location.reload();
         throw new Error('Network response was not ok');
       }
     } catch (error) {
