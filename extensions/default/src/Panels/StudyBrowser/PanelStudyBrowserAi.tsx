@@ -43,7 +43,7 @@ function PanelStudyBrowserAi({
   dataSource,
   renderHeader,
   getCloseIcon,
-  tab
+  tab,
 }: withAppTypes) {
   const { hangingProtocolService, displaySetService, uiNotificationService, customizationService } =
     servicesManager.services;
@@ -697,25 +697,25 @@ function PanelStudyBrowserAi({
   };
 
   const handleSaveReport = async () => {
-    console.log(StudyInstanceUIDs);
-    const input1: string = StudyInstanceUIDs[0];
-    const sopInstanceUID = await getSOPInstanceUID();
-    console.log('sopInstanceUID', sopInstanceUID);
-    const input2: string = await getInstanceIdBySOPInstanceUID(
-      'http://orthanc.zairiz.com:8042/',
-      sopInstanceUID
-    );
-    console.log('input1: ', input1);
-    console.log('input2: ', input2);
-
-    const download_path = './temp/' + input1 + '.dcm';
-    const result_path = './temp/' + input1 + 'm.dcm';
-    await downloadDicomFromOrthanc(input2, download_path);
-    await addReportToDicom(input1, result_path, reportOutput);
-    const new_instance_id = await replaceDicomInstance(input1, result_path);
-    if (new_instance_id != null) {
-      navigate('http://localhost:3000/StudyInstanceUIDs=' + new_instance_id);
-    }
+    // console.log(StudyInstanceUIDs);
+    // const input1: string = StudyInstanceUIDs[0];
+    // const sopInstanceUID = await getSOPInstanceUID();
+    // console.log('sopInstanceUID', sopInstanceUID);
+    // const input2: string = await getInstanceIdBySOPInstanceUID(
+    //   'http://orthanc.zairiz.com:8042/',
+    //   sopInstanceUID
+    // );
+    // console.log('input1: ', input1);
+    // console.log('input2: ', input2);
+    // const download_path = './temp/' + input1 + '.dcm';
+    // const result_path = './temp/' + input1 + 'm.dcm';
+    // await downloadDicomFromOrthanc(input2, download_path);
+    // await addReportToDicom(input1, result_path, reportOutput);
+    // const new_instance_id = await replaceDicomInstance(input1, result_path);
+    // if (new_instance_id != null) {
+    //   navigate('http://localhost:3000/StudyInstanceUIDs=' + new_instance_id);
+    // }
+    console.log('Saved Report');
   };
 
   return (
