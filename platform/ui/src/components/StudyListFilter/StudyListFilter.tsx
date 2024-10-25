@@ -88,6 +88,7 @@ const StudyListFilter = ({
     } finally {
       if (isMounted.current) {
         setIsUploading(false);
+        window.location.reload();
       }
     }
   };
