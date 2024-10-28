@@ -612,52 +612,125 @@ function PanelStudyBrowserAi({
       console.log('clickedImage', clickedImage);
 
       const url = 'https://api.hyperbolic.xyz/v1/chat/completions';
-
       const base64Image = clickedImage; // Use your Base64 string here
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
+      let response: Response = {
+        headers: undefined,
+        ok: false,
+        redirected: false,
+        status: 0,
+        statusText: '',
+        type: 'default',
+        url: '',
+        clone: function (): Response {
+          throw new Error('Function not implemented.');
         },
-        body: JSON.stringify({
-          model: 'meta-llama/Llama-3.2-90B-Vision-Instruct',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.',
-                },
-                { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
-                { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
-                { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
-                { type: 'text', text: 'Short Diagnosis' + detectionLabel },
+        body: undefined,
+        bodyUsed: false,
+        arrayBuffer: function (): Promise<ArrayBuffer> {
+          throw new Error('Function not implemented.');
+        },
+        blob: function (): Promise<Blob> {
+          throw new Error('Function not implemented.');
+        },
+        bytes: function (): Promise<Uint8Array> {
+          throw new Error('Function not implemented.');
+        },
+        formData: function (): Promise<globalThis.FormData> {
+          throw new Error('Function not implemented.');
+        },
+        json: function (): Promise<any> {
+          throw new Error('Function not implemented.');
+        },
+        text: function (): Promise<string> {
+          throw new Error('Function not implemented.');
+        },
+      };
+      if (blobUrl != null) {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/Llama-3.2-90B-Vision-Instruct',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.',
+                  },
+                  { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
+                  { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
+                  { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
+                  { type: 'text', text: 'Short Diagnosis' + detectionLabel },
 
-                {
-                  type: 'image_url',
-                  image_url: { url: 'data:image/jpeg;base64,' + base64Image },
-                },
-                {
-                  type: 'image_url',
-                  image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-                },
-                // {
-                //   type: 'image_Detection',
-                //   image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-                // },
-              ],
-            },
-          ],
-          max_tokens: 2048,
-          temperature: 0.7,
-          top_p: 0.9,
-          stream: false,
-        }),
-      });
+                  {
+                    type: 'image_url',
+                    image_url: { url: 'data:image/jpeg;base64,' + base64Image },
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
+                  },
+                  // {
+                  //   type: 'image_Detection',
+                  //   image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
+                  // },
+                ],
+              },
+            ],
+            max_tokens: 2048,
+            temperature: 0.7,
+            top_p: 0.9,
+            stream: false,
+          }),
+        });
+      } else {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization:
+              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/Llama-3.2-90B-Vision-Instruct',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.',
+                  },
+                  { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
+                  { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
+                  { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
+                  { type: 'text', text: 'Short Diagnosis' + detectionLabel },
+
+                  {
+                    type: 'image_url',
+                    image_url: { url: 'data:image/jpeg;base64,' + base64Image },
+                  },
+                  // {
+                  //   type: 'image_Detection',
+                  //   image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
+                  // },
+                ],
+              },
+            ],
+            max_tokens: 2048,
+            temperature: 0.7,
+            top_p: 0.9,
+            stream: false,
+          }),
+        });
+      }
+
       console.log('response', response);
       const json = await response.json();
 

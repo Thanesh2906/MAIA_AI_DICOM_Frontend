@@ -27,6 +27,9 @@ const filterInstances = (
 };
 
 export default class DisplaySetService extends PubSubService {
+  static getActiveDisplaySet() {
+    throw new Error('Method not implemented.');
+  }
   public static REGISTRATION = {
     altName: 'DisplaySetService',
     name: 'displaySetService',
