@@ -611,130 +611,61 @@ function PanelStudyBrowserAi({
     if (clickedImage) {
       console.log('clickedImage', clickedImage);
 
-      const url = 'https://api.hyperbolic.xyz/v1/chat/completions';
+      const url = 'https://api.hyperbolic.xyz/v1/completions';
       const base64Image = clickedImage; // Use your Base64 string here
-      let response: Response = {
-        headers: undefined,
-        ok: false,
-        redirected: false,
-        status: 0,
-        statusText: '',
-        type: 'default',
-        url: '',
-        clone: function (): Response {
-          throw new Error('Function not implemented.');
+
+      const images = [
+        {
+          type: 'image_url',
+          image_url: {
+            url: `data:image/jpeg;base64,${base64Image}`, // Use the base64 image directly
+          },
         },
-        body: undefined,
-        bodyUsed: false,
-        arrayBuffer: function (): Promise<ArrayBuffer> {
-          throw new Error('Function not implemented.');
-        },
-        blob: function (): Promise<Blob> {
-          throw new Error('Function not implemented.');
-        },
-        bytes: function (): Promise<Uint8Array> {
-          throw new Error('Function not implemented.');
-        },
-        formData: function (): Promise<globalThis.FormData> {
-          throw new Error('Function not implemented.');
-        },
-        json: function (): Promise<any> {
-          throw new Error('Function not implemented.');
-        },
-        text: function (): Promise<string> {
-          throw new Error('Function not implemented.');
-        },
-      };
+      ];
+
       if (blobUrl != null) {
-        response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization:
-              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
-          },
-          body: JSON.stringify({
-            model: 'meta-llama/Llama-3.2-90B-Vision-Instruct',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.',
-                  },
-                  { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
-                  { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
-                  { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
-                  { type: 'text', text: 'Short Diagnosis' + detectionLabel },
-
-                  {
-                    type: 'image_url',
-                    image_url: { url: 'data:image/jpeg;base64,' + base64Image },
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-                  },
-                  // {
-                  //   type: 'image_Detection',
-                  //   image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-                  // },
-                ],
-              },
-            ],
-            max_tokens: 2048,
-            temperature: 0.7,
-            top_p: 0.9,
-            stream: false,
-          }),
-        });
-      } else {
-        response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization:
-              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
-          },
-          body: JSON.stringify({
-            model: 'meta-llama/Llama-3.2-90B-Vision-Instruct',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.',
-                  },
-                  { type: 'text', text: 'Patient Name' + patientInfo.PatientName },
-                  { type: 'text', text: 'Patient Date of Birth' + patientInfo.PatientDOB },
-                  { type: 'text', text: 'Patient Sex' + patientInfo.PatientSex },
-                  { type: 'text', text: 'Short Diagnosis' + detectionLabel },
-
-                  {
-                    type: 'image_url',
-                    image_url: { url: 'data:image/jpeg;base64,' + base64Image },
-                  },
-                  // {
-                  //   type: 'image_Detection',
-                  //   image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-                  // },
-                ],
-              },
-            ],
-            max_tokens: 2048,
-            temperature: 0.7,
-            top_p: 0.9,
-            stream: false,
-          }),
+        images.push({
+          type: 'image_url',
+          image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
         });
       }
+
+      // Encode the image as needed
+      const data = {
+        prompt:
+          'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.' +
+          'Patient Name: ' +
+          patientInfo.PatientName +
+          ',' +
+          'Patient Date of Birth: ' +
+          patientInfo.PatientDOB +
+          ',' +
+          'Patient Sex: ' +
+          patientInfo.PatientSex +
+          ',' +
+          'Short Diagnosis: ' +
+          detectionLabel, // Updated prompt
+        images: images,
+        model: 'Qwen/Qwen2.5-72B-Instruct', // Updated model name to an allowed one
+        max_tokens: 2048,
+        temperature: 0.7,
+        top_p: 0.9,
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
+        },
+        body: JSON.stringify(data), // Use the new data structure
+      });
 
       console.log('response', response);
       const json = await response.json();
 
-      const output = json.choices[0].message.content.replace(/\*/g, '').trim();
+      const output = json.choices[0].text.replace(/\*/g, '').trim();
       setReportOutput(output);
       console.log(output);
     }
@@ -770,24 +701,24 @@ function PanelStudyBrowserAi({
   };
 
   const handleSaveReport = async () => {
-    // console.log(StudyInstanceUIDs);
-    // const input1: string = StudyInstanceUIDs[0];
-    // const sopInstanceUID = await getSOPInstanceUID();
-    // console.log('sopInstanceUID', sopInstanceUID);
-    // const input2: string = await getInstanceIdBySOPInstanceUID(
-    //   'http://orthanc.zairiz.com:8042/',
-    //   sopInstanceUID
-    // );
-    // console.log('input1: ', input1);
-    // console.log('input2: ', input2);
-    // const download_path = './temp/' + input1 + '.dcm';
-    // const result_path = './temp/' + input1 + 'm.dcm';
-    // await downloadDicomFromOrthanc(input2, download_path);
-    // await addReportToDicom(input1, result_path, reportOutput);
-    // const new_instance_id = await replaceDicomInstance(input1, result_path);
-    // if (new_instance_id != null) {
-    //   navigate('http://localhost:3000/StudyInstanceUIDs=' + new_instance_id);
-    // }
+    console.log(StudyInstanceUIDs);
+    const input1: string = StudyInstanceUIDs[0];
+    const sopInstanceUID = await getSOPInstanceUID();
+    console.log('sopInstanceUID', sopInstanceUID);
+    const input2: string = await getInstanceIdBySOPInstanceUID(
+      'http://orthanc.zairiz.com:8042/',
+      sopInstanceUID
+    );
+    console.log('input1: ', input1);
+    console.log('input2: ', input2);
+    const download_path = './temp/' + input1 + '.dcm';
+    const result_path = './temp/' + input1 + 'm.dcm';
+    await downloadDicomFromOrthanc(input2, download_path);
+    await addReportToDicom(input1, result_path, reportOutput);
+    const new_instance_id = await replaceDicomInstance(input1, result_path);
+    if (new_instance_id != null) {
+      navigate('http://localhost:3000/StudyInstanceUIDs=' + new_instance_id);
+    }
     console.log('Saved Report');
   };
 
