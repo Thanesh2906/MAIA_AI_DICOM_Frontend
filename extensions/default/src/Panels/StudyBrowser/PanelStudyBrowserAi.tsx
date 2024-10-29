@@ -28,6 +28,8 @@ import axios from 'axios';
 import fs from 'fs';
 import FormData from 'form-data';
 import dcmjs from 'dcmjs';
+import Groq from 'groq-sdk';
+import { ChatCompletionContentPart } from 'groq-sdk/resources/chat/completions';
 
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
@@ -282,7 +284,7 @@ function PanelStudyBrowserAi({
       return null;
     }
 
-    // Upload the new DICOM file (encapsulated PDF)
+    // Upload the new DICOM file (encapsulated PDF)72
     const new_instance_id = await uploadDicomToOrthanc(dicomFilePath);
     return new_instance_id;
   }
@@ -608,64 +610,69 @@ function PanelStudyBrowserAi({
   };
 
   const handlePerformAIReporting = async () => {
+    const groq = new Groq({
+      apiKey: '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',
+      dangerouslyAllowBrowser: true,
+    });
     if (clickedImage) {
       console.log('clickedImage', clickedImage);
 
-      const url = 'https://api.hyperbolic.xyz/v1/completions';
+      // const url = 'https://api.groq.com/openai/v1/chat/completions';
       const base64Image = clickedImage; // Use your Base64 string here
 
-      const images = [
+      const content = [
+        {
+          type: 'text',
+          text:
+            'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.' +
+            'Patient Name: ' +
+            patientInfo.PatientName +
+            ',' +
+            'Patient Date of Birth: ' +
+            patientInfo.PatientDOB +
+            ',' +
+            'Patient Sex: ' +
+            patientInfo.PatientSex +
+            ',' +
+            'Short Diagnosis: ' +
+            detectionLabel,
+        },
         {
           type: 'image_url',
           image_url: {
-            url: `data:image/jpeg;base64,${base64Image}`, // Use the base64 image directly
+            url: `data:image/jpeg;base64,${base64Image}`, // Ensure this is always provided
           },
         },
       ];
 
-      if (blobUrl != null) {
-        images.push({
-          type: 'image_url',
-          image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-        });
-      }
+      // if (blobUrl != null) {
+      //   content.push({
+      //     type: 'image_url',
+      //     image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
+      //   });
+      // }
 
       // Encode the image as needed
-      const data = {
-        prompt:
-          'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.' +
-          'Patient Name: ' +
-          patientInfo.PatientName +
-          ',' +
-          'Patient Date of Birth: ' +
-          patientInfo.PatientDOB +
-          ',' +
-          'Patient Sex: ' +
-          patientInfo.PatientSex +
-          ',' +
-          'Short Diagnosis: ' +
-          detectionLabel, // Updated prompt
-        images: images,
-        model: 'Qwen/Qwen2.5-72B-Instruct', // Updated model name to an allowed one
-        max_tokens: 2048,
+      const response = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'user',
+            content: content as ChatCompletionContentPart[], // Cast to the expected type
+          },
+        ],
+        model: 'llama-3.2-90b-vision-preview',
         temperature: 0.7,
+        max_tokens: 2048,
         top_p: 0.9,
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXNhbnphaW51bDEwQGdtYWlsLmNvbSIsImlhdCI6MTcyODk1NTQ2MX0.CFOCdn1hHYX_zE8kjDq-6JkSuxdceOFzrXB82Q02K78',
-        },
-        body: JSON.stringify(data), // Use the new data structure
+        stream: false,
+        stop: null,
       });
 
       console.log('response', response);
-      const json = await response.json();
+      const json = response;
 
-      const output = json.choices[0].text.replace(/\*/g, '').trim();
+      // const output = json.choices[0].text.replace(/\*/g, '').trim();
+      const output = json.choices[0].message.content.replace(/\*/g, '').trim();
       setReportOutput(output);
       console.log(output);
     }
