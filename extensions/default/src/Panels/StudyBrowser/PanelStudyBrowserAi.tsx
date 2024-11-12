@@ -97,7 +97,18 @@ function PanelStudyBrowserAi({
     setViewPresets(newViewPresets);
   };
 
+  const assignUrl = async (url: string) => {
+    setClickedImage(url);
+  };
+
   const onDoubleClickThumbnailHandler = async displaySetInstanceUID => {
+    const sopInstanceUID = await getSOPInstanceUID();
+    console.log('sopInstanceUID', sopInstanceUID);
+    const instanceId: string = await getInstanceIdBySOPInstanceUID(
+      'http://orthanc.zairiz.com:8042/',
+      sopInstanceUID
+    );
+
     let updatedViewports = [];
     const viewportId = activeViewportId;
     try {
@@ -116,17 +127,17 @@ function PanelStudyBrowserAi({
       const imageIds = dataSource.getImageIdsForDisplaySet(displaySet);
 
       // Assuming you want to get the middle image ID
-      const imageId = imageIds[Math.floor(imageIds.length / 2)];
+      console.log('image ids: ');
+      const imageId = imageIds[0];
       setIid(imageId);
       console.log('imageId', imageId);
 
-      // Use getImageSrc to get the actual image source
-      const imageSrc = await getImageSrc(imageId);
+      if (instanceId) {
+        const url = 'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
+        console.log('url: ', url);
 
-      // Now you can do something with the imageSrc, like updating the viewport or displaying it
-      const base64String = imageSrc.replace(/^data:image\/\w+;base64,/, '');
-      console.log('Image Source:', base64String);
-      setClickedImage(base64String);
+        setClickedImage(url);
+      }
     } catch (error) {
       console.warn(error);
       uiNotificationService.show({
@@ -320,7 +331,15 @@ function PanelStudyBrowserAi({
       const result: string = instance.SOPInstanceUID;
       return result;
     } catch {
-      console.log(`No instance found`);
+      try {
+        const instance = DicomMetadataStore.getInstanceByImageId(iid);
+        console.log(instance);
+        console.log(instance.SOPInstanceUID);
+        const result: string = instance.SOPInstanceUID;
+        return result;
+      } catch {
+        console.log(`No instance found`);
+      }
     }
   };
 
@@ -461,6 +480,23 @@ function PanelStudyBrowserAi({
     setDisplaySets(mappedDisplaySets);
   }, [StudyInstanceUIDs, thumbnailImageSrcMap, displaySetService]);
 
+  useEffect(() => {
+    const fetchInstanceId = async () => {
+      const sopInstanceUID = await getSOPInstanceUID();
+      console.log('sopInstanceUID', sopInstanceUID);
+      const instanceId: string = await getInstanceIdBySOPInstanceUID(
+        'http://orthanc.zairiz.com:8042/',
+        sopInstanceUID
+      );
+      if (instanceId) {
+        const url = 'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
+
+        setClickedImage(url);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ~~ subscriptions --> displaySets
   useEffect(() => {
     // DISPLAY_SETS_ADDED returns an array of DisplaySets that were added
@@ -491,10 +527,6 @@ function PanelStudyBrowserAi({
           newImageSrcEntry[dSet.displaySetInstanceUID] = await getImageSrc(
             imageId,
             dSet.initialViewport
-          );
-
-          setClickedImage(
-            newImageSrcEntry[dSet.displaySetInstanceUID].replace(/^data:image\/\w+;base64,/, '')
           );
 
           setThumbnailImageSrcMap(prevState => {
@@ -572,14 +604,14 @@ function PanelStudyBrowserAi({
 
       // Prepare the POST request
       const response = await fetch(
-        'https://maia-dqcmczhwaxf8dqh6.westus2-01.azurewebsites.net/detect_base64',
+        'https://maia-dqcmczhwaxf8dqh6.westus2-01.azurewebsites.net/detect',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            image_base64: clickedImage, // Base64 image string
+            image_url: clickedImage, // Base64 image string
             image_id: '123', // Replace with the actual image ID if available
             overall_confidence_level: 0.3, // Set this based on your logic
             overlap_confidence_level: 0.3, // Set this based on your logic
@@ -728,6 +760,31 @@ function PanelStudyBrowserAi({
     }
     console.log('Saved Report');
   };
+
+  async function fetchDicomImage(instanceId) {
+    const url = `http://orthanc.zairiz.com:8042/instances/${instanceId}/frames/0/image-int16`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        referrerPolicy: 'strict-origin-when-cross-origin',
+        body: null,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching DICOM instance: ${response.statusText}`);
+      }
+      console.log(response.url);
+
+      // const blob = await response.blob();
+      // const imageUrl = URL.createObjectURL(blob);
+      // console.log('DICOM image URL:', imageUrl);
+      return response.url;
+      // You can now use this imageUrl to display the image in an <img> tag or similar
+    } catch (error) {
+      console.error('Error loading DICOM image:', error);
+    }
+  }
 
   return (
     <>
