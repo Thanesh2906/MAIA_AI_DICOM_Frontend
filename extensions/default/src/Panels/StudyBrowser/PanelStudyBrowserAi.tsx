@@ -97,10 +97,6 @@ function PanelStudyBrowserAi({
     setViewPresets(newViewPresets);
   };
 
-  const assignUrl = async (url: string) => {
-    setClickedImage(url);
-  };
-
   const onDoubleClickThumbnailHandler = async displaySetInstanceUID => {
     const sopInstanceUID = await getSOPInstanceUID();
     console.log('sopInstanceUID', sopInstanceUID);
@@ -428,7 +424,7 @@ function PanelStudyBrowserAi({
     StudyInstanceUIDs.forEach(sid => fetchStudiesForPatient(sid));
   }, [StudyInstanceUIDs, dataSource, getStudiesForPatientByMRN, navigate]);
 
-  // // ~~ Initial Thumbnails
+  // // ~~ Initial Thumbnailsb
   useEffect(() => {
     console.log('hasLoadedViewports useEffect');
 
@@ -522,6 +518,19 @@ function PanelStudyBrowserAi({
           // TODO: Is it okay that imageIds are not returned here for SR displaysets?
           if (!imageId) {
             return;
+          }
+
+          const sopInstanceUID = await getSOPInstanceUID();
+          console.log('sopInstanceUID', sopInstanceUID);
+          const instanceId: string = await getInstanceIdBySOPInstanceUID(
+            'http://orthanc.zairiz.com:8042/',
+            sopInstanceUID
+          );
+          if (instanceId) {
+            const url =
+              'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
+
+            setClickedImage(url);
           }
           // When the image arrives, render it and store the result in the thumbnailImgSrcMap
           newImageSrcEntry[dSet.displaySetInstanceUID] = await getImageSrc(
@@ -650,7 +659,7 @@ function PanelStudyBrowserAi({
       console.log('clickedImage', clickedImage);
 
       // const url = 'https://api.groq.com/openai/v1/chat/completions';
-      const base64Image = clickedImage; // Use your Base64 string here
+      const imageUrl = clickedImage; // Use your Base64 string here
 
       const content = [
         {
@@ -672,7 +681,7 @@ function PanelStudyBrowserAi({
         {
           type: 'image_url',
           image_url: {
-            url: `data:image/jpeg;base64,${base64Image}`, // Ensure this is always provided
+            url: imageUrl, // Ensure this is always provided
           },
         },
       ];
