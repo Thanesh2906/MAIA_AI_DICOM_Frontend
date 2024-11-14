@@ -98,13 +98,6 @@ function PanelStudyBrowserAi({
   };
 
   const onDoubleClickThumbnailHandler = async displaySetInstanceUID => {
-    const sopInstanceUID = await getSOPInstanceUID();
-    console.log('sopInstanceUID', sopInstanceUID);
-    const instanceId: string = await getInstanceIdBySOPInstanceUID(
-      'http://orthanc.zairiz.com:8042/',
-      sopInstanceUID
-    );
-
     let updatedViewports = [];
     const viewportId = activeViewportId;
     try {
@@ -125,8 +118,15 @@ function PanelStudyBrowserAi({
       // Assuming you want to get the middle image ID
       console.log('image ids: ');
       const imageId = imageIds[0];
-      setIid(imageId);
+      // setIid(imageId);
       console.log('imageId', imageId);
+
+      const sopInstanceUID = await getSOPInstanceUID(imageId);
+      console.log('sopInstanceUID', sopInstanceUID);
+      const instanceId: string = await getInstanceIdBySOPInstanceUID(
+        'http://orthanc.zairiz.com:8042/',
+        sopInstanceUID
+      );
 
       if (instanceId) {
         const url = 'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
@@ -318,17 +318,17 @@ function PanelStudyBrowserAi({
     }
   };
 
-  const getSOPInstanceUID = () => {
+  const getSOPInstanceUID = (imageId: string) => {
     // Access a loaded study's metadata
     try {
-      const instance = DicomMetadataStore.getInstanceByImageId(iid);
+      const instance = DicomMetadataStore.getInstanceByImageId(imageId);
       console.log(instance);
       console.log(instance.SOPInstanceUID);
       const result: string = instance.SOPInstanceUID;
       return result;
     } catch {
       try {
-        const instance = DicomMetadataStore.getInstanceByImageId(iid);
+        const instance = DicomMetadataStore.getInstanceByImageId(imageId);
         console.log(instance);
         console.log(instance.SOPInstanceUID);
         const result: string = instance.SOPInstanceUID;
