@@ -520,7 +520,7 @@ function PanelStudyBrowserAi({
             return;
           }
 
-          const sopInstanceUID = await getSOPInstanceUID();
+          const sopInstanceUID = await getSOPInstanceUID(imageId);
           console.log('sopInstanceUID', sopInstanceUID);
           const instanceId: string = await getInstanceIdBySOPInstanceUID(
             'http://orthanc.zairiz.com:8042/',
