@@ -613,7 +613,7 @@ function PanelStudyBrowserAi({
 
       // Prepare the POST request
       const response = await fetch(
-        'https://maia-dqcmczhwaxf8dqh6.westus2-01.azurewebsites.net/detect',
+        'https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/detect',
         {
           method: 'POST',
           headers: {

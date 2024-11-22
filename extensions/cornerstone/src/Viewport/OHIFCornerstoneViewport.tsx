@@ -6,7 +6,7 @@ import { Enums, eventTarget, getEnabledElement } from '@cornerstonejs/core';
 import { MeasurementService } from '@ohif/core';
 import { Notification, useViewportDialog, AllInOneMenu } from '@ohif/ui';
 import type { Types as csTypes } from '@cornerstonejs/core';
-
+import { Image } from 'antd';
 import { setEnabledElement } from '../state';
 
 import './OHIFCornerstoneViewport.css';
@@ -414,14 +414,12 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
       <React.Fragment>
         <div className="viewport-wrapper">
           <div>
-            <img
+            <Image
               src={url}
               alt="Blob content"
-              className="mx-[17%] my-[3%] h-[85vh] w-[100vh] object-fill"
-              // Maintain aspect ratio
-
-              // onContextMenu={e => e.preventDefault()}
-              // onMouseDown={e => e.preventDefault()}
+              width={1500}
+              height={800}
+              className="h-[85vh] w-[100vh] object-contain"
             />
           </div>
           <CornerstoneOverlays
