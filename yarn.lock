@@ -2653,7 +2653,7 @@
 "@externals/dicom-microscopy-viewer@file:addOns/externals/dicom-microscopy-viewer":
   version "3.9.0-beta.92"
   dependencies:
-    "@externals/dicom-microscopy-viewer" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@externals-dicom-microscopy-viewer-3.9.0-beta.92-0d75819f-1fab-425c-9871-fe8e5c66b9ce-1732259051330/node_modules/@externals/dicom-microscopy-viewer"
+    "@externals/dicom-microscopy-viewer" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@externals-dicom-microscopy-viewer-3.9.0-beta.92-263cfd71-b418-4613-8efd-fb0e1aa7188b-1732592325566/node_modules/@externals/dicom-microscopy-viewer"
     dicom-microscopy-viewer "^0.46.1"
 
 "@fal-works/esbuild-plugin-global-externals@^2.1.2":
@@ -3503,7 +3503,7 @@
   version "3.9.0-beta.92"
   dependencies:
     "@babel/core" "7.24.7"
-    "@ohif/cli" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-cli-3.9.0-beta.92-8a54fcdb-427e-4350-83db-300c4fee663a-1732259051324/node_modules/@ohif/cli"
+    "@ohif/cli" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-cli-3.9.0-beta.92-27247f0b-efda-42f3-8ccf-6b69c425a2ed-1732592325565/node_modules/@ohif/cli"
     axios "^0.28.0"
     chalk "^5.0.0"
     execa "^8.0.1"
@@ -3523,7 +3523,7 @@
   version "3.9.0-beta.92"
   dependencies:
     "@babel/runtime" "^7.20.13"
-    "@ohif/core" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-core-3.9.0-beta.92-601ec33c-b56c-4f29-b336-9f47cc73c47b-1732259051334/node_modules/@ohif/core"
+    "@ohif/core" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-core-3.9.0-beta.92-f8d7b3cd-e638-4bac-aa76-b9c7563e2531-1732592325568/node_modules/@ohif/core"
     dcmjs "*"
     dicomweb-client "^0.10.4"
     gl-matrix "^3.4.3"
@@ -3543,7 +3543,7 @@
     "@cornerstonejs/adapters" "^1.82.4"
     "@cornerstonejs/core" "^1.82.4"
     "@cornerstonejs/tools" "^1.82.4"
-    "@ohif/extension-cornerstone-dicom-sr" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-cornerstone-dicom-sr-3.9.0-beta.92-ac7b8cc9-80e5-4058-9ae7-e8b6306f8626-1732259051337/node_modules/@ohif/extension-cornerstone-dicom-sr"
+    "@ohif/extension-cornerstone-dicom-sr" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-cornerstone-dicom-sr-3.9.0-beta.92-c2f4bfcc-2f63-4f57-9fbd-6c8b1c8d2e09-1732592325568/node_modules/@ohif/extension-cornerstone-dicom-sr"
     classnames "^2.3.2"
 
 "@ohif/extension-cornerstone@file:extensions/cornerstone":
@@ -3556,7 +3556,7 @@
     "@cornerstonejs/tools" "^1.82.4"
     "@icr/polyseg-wasm" "^0.4.0"
     "@kitware/vtk.js" "30.4.1"
-    "@ohif/extension-cornerstone" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-cornerstone-3.9.0-beta.92-65e568b8-4a3e-49eb-9480-f4ec7da519e1-1732259051339/node_modules/@ohif/extension-cornerstone"
+    "@ohif/extension-cornerstone" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-cornerstone-3.9.0-beta.92-c7dae8ce-3f55-4069-a0d2-0d56ea2fe33b-1732592325569/node_modules/@ohif/extension-cornerstone"
     html2canvas "^1.4.1"
     lodash.debounce "^4.0.8"
     lodash.merge "^4.6.2"
@@ -3567,21 +3567,21 @@
   version "3.9.0-beta.92"
   dependencies:
     "@babel/runtime" "^7.20.13"
-    "@ohif/extension-dicom-pdf" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-dicom-pdf-3.9.0-beta.92-6eb481ae-8ca1-4cea-ae58-8f49f671449b-1732259051338/node_modules/@ohif/extension-dicom-pdf"
+    "@ohif/extension-dicom-pdf" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-dicom-pdf-3.9.0-beta.92-f41e79a9-d7cd-4d4b-83a8-c09981f8e440-1732592325570/node_modules/@ohif/extension-dicom-pdf"
     classnames "^2.3.2"
 
 "@ohif/extension-dicom-video@file:extensions/dicom-video":
   version "3.9.0-beta.92"
   dependencies:
     "@babel/runtime" "^7.20.13"
-    "@ohif/extension-dicom-video" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-dicom-video-3.9.0-beta.92-c1a8a3d7-ddf0-4e82-aef4-fca13732086a-1732259051336/node_modules/@ohif/extension-dicom-video"
+    "@ohif/extension-dicom-video" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-dicom-video-3.9.0-beta.92-a928a55b-d2bf-4a7b-a71d-ec14d1f23b2f-1732592325569/node_modules/@ohif/extension-dicom-video"
     classnames "^2.3.2"
 
 "@ohif/extension-measurement-tracking@file:extensions/measurement-tracking":
   version "3.9.0-beta.92"
   dependencies:
     "@babel/runtime" "^7.20.13"
-    "@ohif/extension-measurement-tracking" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-measurement-tracking-3.9.0-beta.92-b6d9de68-f524-4260-af12-b242fccff1a4-1732259051327/node_modules/@ohif/extension-measurement-tracking"
+    "@ohif/extension-measurement-tracking" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-measurement-tracking-3.9.0-beta.92-b91f44de-7536-40d7-892d-45c2e63b4b1c-1732592325566/node_modules/@ohif/extension-measurement-tracking"
     "@ohif/ui" "3.9.0-beta.92"
     "@xstate/react" "^3.2.2"
     xstate "^4.10.0"
@@ -3590,20 +3590,20 @@
   version "3.9.0-beta.92"
   dependencies:
     "@babel/runtime" "^7.20.13"
-    "@ohif/extension-test" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-test-3.9.0-beta.92-a432bcef-3e31-44e4-a340-325595bf1354-1732259051341/node_modules/@ohif/extension-test"
+    "@ohif/extension-test" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-test-3.9.0-beta.92-725f2358-164a-4e76-894c-41725aa6e3eb-1732592325570/node_modules/@ohif/extension-test"
     classnames "^2.3.2"
 
 "@ohif/extension-tmtv@file:extensions/tmtv":
   version "3.9.0-beta.92"
   dependencies:
     "@babel/runtime" "^7.20.13"
-    "@ohif/extension-tmtv" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-tmtv-3.9.0-beta.92-f2cd36be-acb4-4771-b835-202b07b20dc9-1732259051340/node_modules/@ohif/extension-tmtv"
+    "@ohif/extension-tmtv" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-extension-tmtv-3.9.0-beta.92-729a4c18-7e61-482a-b7f9-af425af737b2-1732592325570/node_modules/@ohif/extension-tmtv"
     classnames "^2.3.2"
 
 "@ohif/ui-next@file:platform/ui-next":
   version "3.9.0-beta.92"
   dependencies:
-    "@ohif/ui-next" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-ui-next-3.9.0-beta.92-ff0cc43f-65e6-4e71-9982-e4f0261c5948-1732259051328/node_modules/@ohif/ui-next"
+    "@ohif/ui-next" "file:../../../AppData/Local/Yarn/Cache/v6/npm-@ohif-ui-next-3.9.0-beta.92-8d0d060b-0426-4cb6-ba4f-745e8b975ef3-1732592325563/node_modules/@ohif/ui-next"
     "@radix-ui/react-accordion" "^1.2.0"
     "@radix-ui/react-checkbox" "^1.1.1"
     "@radix-ui/react-dialog" "^1.1.1"
@@ -4450,6 +4450,24 @@
     "@radix-ui/react-primitive" "2.0.0"
     "@radix-ui/react-roving-focus" "1.1.0"
     "@radix-ui/react-use-controllable-state" "1.1.0"
+
+"@radix-ui/react-toast@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-toast/-/react-toast-1.2.2.tgz#fdd8ed0b80f47d6631dfd90278fee6debc06bf33"
+  integrity sha512-Z6pqSzmAP/bFJoqMAston4eSNa+ud44NSZTiZUmUen+IOZ5nBY8kzuU5WDBVyFXPtcW6yUalOHsxM/BP6Sv8ww==
+  dependencies:
+    "@radix-ui/primitive" "1.1.0"
+    "@radix-ui/react-collection" "1.1.0"
+    "@radix-ui/react-compose-refs" "1.1.0"
+    "@radix-ui/react-context" "1.1.1"
+    "@radix-ui/react-dismissable-layer" "1.1.1"
+    "@radix-ui/react-portal" "1.1.2"
+    "@radix-ui/react-presence" "1.1.1"
+    "@radix-ui/react-primitive" "2.0.0"
+    "@radix-ui/react-use-callback-ref" "1.1.0"
+    "@radix-ui/react-use-controllable-state" "1.1.0"
+    "@radix-ui/react-use-layout-effect" "1.1.0"
+    "@radix-ui/react-visually-hidden" "1.1.0"
 
 "@radix-ui/react-toggle-group@1.0.4":
   version "1.0.4"

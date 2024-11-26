@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from '../../../../../component/alert-dialog';
 import { useAppContext } from '../../../../app/src/AppContext';
+import { useToast } from '../../../../../component/use-toast';
 
 import {
   Icon,
@@ -92,6 +93,7 @@ function WorkList({
 
   const debouncedFilterValues = useDebounce(filterValues, 200);
   const { resultsPerPage, pageNumber, sortBy, sortDirection } = filterValues;
+  const { toast } = useToast();
 
   /*
    * The default sort value keep the filters synchronized with runtime conditional sorting
@@ -247,15 +249,21 @@ function WorkList({
   }, [expandedRows, studies]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // const { patientInfo, setPatientInfo } = useAppContext();
+  const [isDialogOpenEdit, setIsDialogOpenEdit] = useState(false);
   const [studyId, setStudyId] = useState();
+  const [mainDicomTags, setMainDicomTags] = useState({
+    PatientName: '',
+    PatientID: '',
+    PatientBirthDate: '',
+    PatientSex: '',
+  });
 
   const closeDialogDelete = () => {
     setIsDialogOpen(false); // Function to close the dialog
   };
-  // const closeDialogEdit = () => {
-  //   setIsDialogOpen(false); // Function to close the dialog
-  // };
+  const closeDialogEdit = () => {
+    setIsDialogOpenEdit(false); // Function to close the dialog
+  };
 
   // Function to get the Study ID
   const getStudyID = async studyInstanceUid => {
@@ -294,6 +302,95 @@ function WorkList({
         throw new Error(`Failed to delete study. Status code: ${response.status}`);
       }
       window.location.reload();
+      console.log('Study deleted successfully');
+    } catch (error) {
+      console.error('Error deleting study:', error.message);
+    }
+  };
+
+  const getStudyinfo = async () => {
+    const url = `http://orthanc.zairiz.com:8042/patients/${studyId}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch study info. Status code: ${response.status}`);
+      }
+
+      const data = await response.json(); // Get the JSON data
+      setMainDicomTags(data.MainDicomTags); // Update state with MainDicomTags
+    } catch (error) {
+      console.error('Error fetching study info:', error.message);
+    }
+  };
+
+  const [studyIds, setStudyIds] = useState([]);
+
+  const getStudies = async () => {
+    try {
+      const response = await fetch(`http://orthanc.zairiz.com:8042/patients/${studyId}/studies`);
+      const data = await response.json();
+      const ids = data.map(study => study.ID); // Extract IDs
+      setStudyIds(ids); // Store IDs in state
+    } catch (error) {
+      console.error('Error fetching studies:', error);
+    }
+  };
+
+  const savePatientInfo = async () => {
+    const url = `http://orthanc.zairiz.com:8042/patients/${studyId}/modify`;
+    const payload = {
+      Replace: {
+        PatientID: mainDicomTags.PatientID,
+        PatientName: mainDicomTags.PatientName,
+        PatientBirthDate: mainDicomTags.PatientBirthDate,
+        PatientSex: mainDicomTags.PatientSex,
+      },
+      Force: true,
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save patient info. Status code: ${response.status}`);
+      }
+
+      // Call delete function after successful POST
+      deleteStudyedit(); // {{ edit_1 }}
+      window.location.reload();
+
+      toast({
+        title: 'Successfully updated',
+        description: 'Patient information saved successfully',
+      });
+
+      // Optionally, you can refresh the data or close the dialog here
+    } catch (error) {
+      console.error('Error saving patient information:', error.message);
+    }
+  };
+  // Function to delete the study using the ID
+  const deleteStudyedit = async () => {
+    const url = `http://orthanc.zairiz.com:8042/studies/${studyIds}`; // Use first study ID from array
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete study. Status code: ${response.status}`);
+      }
       console.log('Study deleted successfully');
     } catch (error) {
       console.error('Error deleting study:', error.message);
@@ -499,66 +596,116 @@ function WorkList({
                 )
               );
             })}
-            {/* <AlertDialog
-              open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
+            <AlertDialog
+              open={isDialogOpenEdit}
+              onOpenChange={setIsDialogOpenEdit}
             >
-              <AlertDialogTrigger>
+              <AlertDialogTrigger
+                onClick={async () => {
+                  getStudyID(studyInstanceUid); // {{ edit_1 }}
+                }}
+              >
                 <Icon
                   name="pencil"
                   style={{ minWidth: '24px', cursor: 'pointer' }}
                   className="ml-4 w-3 text-yellow-500"
                 />
               </AlertDialogTrigger>
-              <AlertDialogContent className="max-w-[850px]">
+              <AlertDialogContent className="max-w-[450px]">
                 <AlertDialogHeader>
                   <AlertDialogDescription>
-                    <div className="relative space-y-2 text-2xl">
-                      <p className="text-3xl">Patient Report Information</p>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <label>Patient Name:</label>
-                          <input
-                            value={patientInfo.PatientName}
-                            onChange={e => setPatientInfo.patientInfo.PatientName(e.target.value)} // {{ edit_1 }}
-                            className="col-span-2"
-                          />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <label>Patient ID:</label>
-                          <input
-                            value={patientInfo.PatientID}
-                            onChange={e => setPatientID(e.target.value)} // {{ edit_2 }}
-                            className="col-span-2"
-                          />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <label>Date of Birth:</label>
-                          <input
-                            value={patientInfo.PatientDOB}
-                            onChange={e => setPatientDOB(e.target.value)} // {{ edit_3 }}
-                            className="col-span-2"
-                          />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <label>Sex:</label>
-                          <input
-                            value={patientInfo.PatientSex}
-                            onChange={e => PatientSex(e.target.value)} // {{ edit_4 }}
-                            className="col-span-2"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    <p>
+                      Please confirm that you want to proceed with editing the patient's
+                      information.
+                    </p>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <Button onClick={closeDialogEdit}>Cancel</Button>
-
-                  <Button>Save Information</Button>
+                  <Button onClick={closeDialogEdit}>NO</Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger
+                      onClick={async () => {
+                        getStudyinfo();
+                        getStudies();
+                      }}
+                    >
+                      <Button>YES</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="max-w-[850px]">
+                      <AlertDialogHeader>
+                        <AlertDialogDescription>
+                          <div className="relative space-y-2 text-2xl">
+                            <p className="text-3xl">Patient Report Information</p>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label>Patient Name:</label>
+                                <input
+                                  value={mainDicomTags.PatientName} // {{ edit_1 }}
+                                  onChange={e => {
+                                    const new_info = {
+                                      ...mainDicomTags,
+                                      PatientName: e.target.value,
+                                    }; // Update state
+                                    setMainDicomTags(new_info);
+                                  }}
+                                  className="col-span-2"
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label>Patient ID:</label>
+                                <input
+                                  value={mainDicomTags.PatientID} // {{ edit_2 }}
+                                  onChange={e => {
+                                    const new_info = {
+                                      ...mainDicomTags,
+                                      PatientID: e.target.value,
+                                    }; // Update state
+                                    setMainDicomTags(new_info);
+                                  }}
+                                  className="col-span-2"
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label>Date of Birth:</label>
+                                <input
+                                  value={mainDicomTags.PatientBirthDate} // {{ edit_3 }}
+                                  onChange={e => {
+                                    const new_info = {
+                                      ...mainDicomTags,
+                                      PatientBirthDate: e.target.value,
+                                    }; // Update state
+                                    setMainDicomTags(new_info);
+                                  }}
+                                  className="col-span-2"
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label>Sex:</label>
+                                <input
+                                  value={mainDicomTags.PatientSex} // {{ edit_4 }}
+                                  onChange={e => {
+                                    const new_info = {
+                                      ...mainDicomTags,
+                                      PatientSex: e.target.value,
+                                    }; // Update state
+                                    setMainDicomTags(new_info);
+                                  }}
+                                  className="col-span-2"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <Button onClick={closeDialogEdit}>Cancel</Button>
+                        <Button onClick={savePatientInfo}>Save Information</Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog> */}
+            </AlertDialog>
 
             <AlertDialog
               open={isDialogOpen}

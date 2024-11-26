@@ -676,7 +676,7 @@ function PanelStudyBrowserAi({
             patientInfo.PatientSex +
             ',' +
             'Short Diagnosis: ' +
-            detectionLabel,
+            [detectionLabel],
         },
         {
           type: 'image_url',
