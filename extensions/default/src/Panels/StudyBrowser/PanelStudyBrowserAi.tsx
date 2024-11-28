@@ -1,3 +1,5 @@
+/* eslint-disable no-template-curly-in-string */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useImageViewer, useViewportGrid } from '@ohif/ui';
@@ -118,8 +120,9 @@ function PanelStudyBrowserAi({
       // Assuming you want to get the middle image ID
       console.log('image ids: ');
       const imageId = imageIds[0];
-      // setIid(imageId);
+      setIid(imageId);
       console.log('imageId', imageId);
+      setClickedImage(imageId);
 
       const sopInstanceUID = await getSOPInstanceUID(imageId);
       console.log('sopInstanceUID', sopInstanceUID);
@@ -146,176 +149,6 @@ function PanelStudyBrowserAi({
 
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
     console.log('updatedViewports', updatedViewports);
-  };
-
-  async function getDicomMetadata(instanceId: string) {
-    try {
-      const response = await axios.get(
-        `http://orthanc.zairiz.com:8042/instances/${instanceId}/content`,
-        {
-          auth: {
-            username: 'orthanc',
-            password: 'orthanc',
-          },
-        }
-      );
-
-      console.log('DICOM metadata retrieved successfully.');
-      return response.data;
-    } catch (error) {
-      console.error('Error retrieving DICOM metadata:', error);
-      return null;
-    }
-  }
-
-  // Function to download a DICOM instance from Orthanc
-  async function downloadDicomFromOrthanc(instanceId: string, outputFilePath: string) {
-    try {
-      const response = await axios({
-        method: 'GET',
-        url: `http://orthanc.zairiz.com:8042/instances/${instanceId}/file`,
-        responseType: 'blob',
-        headers: {
-          Accept: 'application/dicom',
-        },
-        auth: {
-          username: 'orthanc',
-          password: 'orthanc',
-        },
-      });
-
-      // Create a Blob from the response data
-      const blob = new Blob([response.data], { type: 'application/dicom' });
-
-      // Create a temporary URL for the Blob
-      const url = window.URL.createObjectURL(blob);
-
-      // Create a temporary anchor element
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = outputFilePath.split('/').pop() || 'download.dcm'; // Use the filename from outputFilePath or a default
-
-      // Append to the document, trigger click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Release the URL object
-      window.URL.revokeObjectURL(url);
-
-      console.log('DICOM file download initiated');
-    } catch (error) {
-      console.error('Error downloading DICOM file from Orthanc:', error);
-    }
-  }
-
-  // Function to add a report string to a DICOM file
-  async function addReportToDicom(dicomFilePath: string, outputFilePath: string, report: string) {
-    // Read the DICOM file as a buffer
-    const dicomFileBuffer = fs.readFileSync(dicomFilePath);
-
-    // Parse the DICOM file using dcmjs
-    const dicomData = dcmjs.data.DicomMessage.readFile(dicomFileBuffer);
-    const dataset = dicomData.dict;
-
-    // Define a private tag (e.g., (0x0011, 0x1000))
-    const privateTag = 'x00111000'; // Hex representation of (0x0011, 0x1000)
-
-    // Add the report string to the private tag
-    dataset[privateTag] = {
-      vr: 'LT', // Long Text (LT) for the report
-      Value: [report],
-    };
-
-    // Write the modified DICOM data back to a file
-    const modifiedDicomBuffer = dcmjs.data.DicomMessage.writeFile(dicomData);
-    fs.writeFileSync(outputFilePath, Buffer.from(modifiedDicomBuffer));
-
-    console.log('DICOM file updated with report.');
-  }
-
-  async function extractReportFromMetadata(instanceId: string) {
-    const metadata = await getDicomMetadata(instanceId);
-    if (metadata) {
-      // Assuming the report was stored in private tag (0x0011, 0x1000)
-      const privateTag = '00111000'; // Hex representation without 'x' prefix
-
-      // Check if the private tag exists in the metadata
-      if (metadata[privateTag]) {
-        const report = metadata[privateTag].Value[0]; // Extract the report string
-        console.log('Report extracted from DICOM:', report);
-      } else {
-        console.log('Report not found in the DICOM metadata.');
-      }
-    }
-  }
-
-  async function uploadDicomToOrthanc(dicomFilePath: string) {
-    const dicomFile = fs.createReadStream(dicomFilePath);
-    const form = new FormData();
-    form.append('file', dicomFile);
-
-    try {
-      const response = await axios.post('http://orthanc.zairiz.com:8042/instances', form, {
-        headers: form.getHeaders(),
-        auth: {
-          username: 'orthanc',
-          password: 'orthanc',
-        },
-      });
-
-      // The response will contain the instance ID and other details
-      const instanceId = response.data.ID;
-      console.log('DICOM file uploaded successfully. Instance ID:', instanceId);
-
-      // Forward the user to the updated DICOM file
-      return instanceId; // You can return this instance ID for further use
-    } catch (error) {
-      console.error('Error uploading DICOM file to Orthanc:', error);
-    }
-  }
-
-  async function replaceDicomInstance(instanceId: string, dicomFilePath: string) {
-    // First, delete the existing instance
-    try {
-      await axios.delete(`http://orthanc.zairiz.com:8042/instances/${instanceId}`, {
-        auth: {
-          username: 'orthanc',
-          password: 'orthanc',
-        },
-      });
-
-      console.log(`DICOM instance ${instanceId} deleted successfully.`);
-    } catch (error) {
-      console.error(`Error deleting DICOM instance ${instanceId}`, error);
-      return null;
-    }
-
-    // Upload the new DICOM file (encapsulated PDF)72
-    const new_instance_id = await uploadDicomToOrthanc(dicomFilePath);
-    return new_instance_id;
-  }
-
-  const getCurrentInstance = () => {
-    // Access the active display set from the DisplaySetService
-    const displaySetService = DisplaySetService;
-    const activeDisplaySet = displaySetService.getActiveDisplaySet();
-
-    if (activeDisplaySet) {
-      // Get the currently selected instance from the active display set
-      const currentInstance = activeDisplaySet.getActiveInstance();
-
-      if (currentInstance) {
-        console.log('Currently opened instance:', currentInstance);
-        return currentInstance;
-      } else {
-        console.log('No instance is currently opened in the active display set.');
-        return null;
-      }
-    } else {
-      console.log('No active display set found.');
-      return null;
-    }
   };
 
   const getSOPInstanceUID = (imageId: string) => {
@@ -468,30 +301,13 @@ function PanelStudyBrowserAi({
   useEffect(() => {
     console.log('currentDisplaySets useEffect');
 
-    // TODO: Are we sure `activeDisplaySets` will always be accurate?
+    // TODO: Are we sure activeDisplaySets will always be accurate?
     const currentDisplaySets = displaySetService.activeDisplaySets;
     const mappedDisplaySets = _mapDisplaySets(currentDisplaySets, thumbnailImageSrcMap);
     sortStudyInstances(mappedDisplaySets);
 
     setDisplaySets(mappedDisplaySets);
   }, [StudyInstanceUIDs, thumbnailImageSrcMap, displaySetService]);
-
-  useEffect(() => {
-    const fetchInstanceId = async () => {
-      const sopInstanceUID = await getSOPInstanceUID();
-      console.log('sopInstanceUID', sopInstanceUID);
-      const instanceId: string = await getInstanceIdBySOPInstanceUID(
-        'http://orthanc.zairiz.com:8042/',
-        sopInstanceUID
-      );
-      if (instanceId) {
-        const url = 'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
-
-        setClickedImage(url);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ~~ subscriptions --> displaySets
   useEffect(() => {
@@ -513,6 +329,7 @@ function PanelStudyBrowserAi({
 
           const imageIds = dataSource.getImageIdsForDisplaySet(displaySet);
           const imageId = imageIds[Math.floor(imageIds.length / 2)];
+          setIid(imageId);
           console.log('imageIds', imageIds);
 
           // TODO: Is it okay that imageIds are not returned here for SR displaysets?
@@ -551,8 +368,8 @@ function PanelStudyBrowserAi({
   }, [getImageSrc, dataSource, displaySetService]);
 
   useEffect(() => {
-    // TODO: Will this always hold _all_ the displaySets we care about?
-    // DISPLAY_SETS_CHANGED returns `DisplaySerService.activeDisplaySets`
+    // TODO: Will this always hold all the displaySets we care about?
+    // DISPLAY_SETS_CHANGED returns DisplaySerService.activeDisplaySets
     console.log('displaySets useEffect');
 
     const SubscriptionDisplaySetsChanged = displaySetService.subscribe(
@@ -729,19 +546,6 @@ function PanelStudyBrowserAi({
     setIsDialogOpen(false); // Function to close the dialog
   };
 
-  function getInstanceIdFromUrl(): string | null {
-    // Extract the URL path
-    const url = window.location.pathname;
-
-    // Split the URL into parts
-    const urlSegments = url.split('/');
-
-    // Assuming the SOPInstanceUID is the last part of the URL
-    const sopInstanceUid = urlSegments[urlSegments.length - 1];
-
-    return sopInstanceUid;
-  }
-
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
     doc.text(reportOutput || 'No report available', 10, 10); // Add reportOutput to the PDF
@@ -750,50 +554,82 @@ function PanelStudyBrowserAi({
 
   const handleSaveReport = async () => {
     console.log(StudyInstanceUIDs);
-    const input1: string = StudyInstanceUIDs[0];
-    const sopInstanceUID = await getSOPInstanceUID();
+    const input1: string = StudyInstanceUIDs[0]; // Patient ID
+    const sopInstanceUID = await getSOPInstanceUID(iid);
     console.log('sopInstanceUID', sopInstanceUID);
-    const input2: string = await getInstanceIdBySOPInstanceUID(
+    const instance_id: string = await getInstanceIdBySOPInstanceUID(
       'http://orthanc.zairiz.com:8042/',
       sopInstanceUID
     );
     console.log('input1: ', input1);
-    console.log('input2: ', input2);
-    const download_path = './temp/' + input1 + '.dcm';
-    const result_path = './temp/' + input1 + 'm.dcm';
-    await downloadDicomFromOrthanc(input2, download_path);
-    await addReportToDicom(input1, result_path, reportOutput);
-    const new_instance_id = await replaceDicomInstance(input1, result_path);
-    if (new_instance_id != null) {
-      navigate('http://localhost:3000/StudyInstanceUIDs=' + new_instance_id);
-    }
-    console.log('Saved Report');
-  };
+    console.log('instance_id: ', instance_id);
 
-  async function fetchDicomImage(instanceId) {
-    const url = `http://orthanc.zairiz.com:8042/instances/${instanceId}/frames/0/image-int16`;
+    // Prepare the report data as a Blob from the string
+    const reportText = reportOutput || 'No report available.'; // Use the report output or a default message
 
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        referrerPolicy: 'strict-origin-when-cross-origin',
-        body: null,
-      });
+      const response = await axios.post(
+        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/report`, // Update with your actual API URL
+        null, // No body needed since we're using query parameters
+        {
+          params: {
+            instance_id: instance_id,
+            report: reportText,
+          },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`Error fetching DICOM instance: ${response.statusText}`);
-      }
-      console.log(response.url);
-
-      // const blob = await response.blob();
-      // const imageUrl = URL.createObjectURL(blob);
-      // console.log('DICOM image URL:', imageUrl);
-      return response.url;
-      // You can now use this imageUrl to display the image in an <img> tag or similar
+      console.log('Response: ', response);
+      console.log('Report saved to database');
     } catch (error) {
-      console.error('Error loading DICOM image:', error);
+      console.error('Error saving report:', error.message);
     }
-  }
+  };
+
+  const fetchReport = async (instance_id: string) => {
+    try {
+      // Fetch the report data from the DICOM instance attachments
+      const response = await axios.get(
+        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/report/${instance_id}` // Updated endpoint to fetch the specific attachment
+      );
+
+      // Extract the report data from the response
+      const reportData = response.data;
+      console.log('Fetched report data:', reportData);
+
+      // Check if the report data exists
+      if (reportData) {
+        console.log('Report Output:', reportData);
+        setReportOutput(reportData.report); // Set the report output state
+        return reportData.report;
+      } else {
+        console.log('No report data found in the specified attachment.');
+      }
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+    }
+  };
+
+  useEffect(() => {
+    const loadReport = async () => {
+      const sopInstanceUID = await getSOPInstanceUID(iid);
+      const instanceId: string = await getInstanceIdBySOPInstanceUID(
+        'http://orthanc.zairiz.com:8042/',
+        sopInstanceUID
+      );
+
+      if (instanceId) {
+        const report = await fetchReport(instanceId); // Fetch the report
+        if (report) {
+          setReportOutput(report); // Set the report output state
+        } else {
+          console.log('No report found for this instance.');
+        }
+      }
+    };
+
+    loadReport(); // Call the loadReport function
+  }, [iid]); // Add dependencies as needed
 
   return (
     <>
