@@ -482,7 +482,7 @@ function PanelStudyBrowserAi({
         {
           type: 'text',
           text:
-            'Do an report with Example Structure with Chain of Thought.if unable to diagnose,give a relatable reporting template.Use the followings information to fill the report.' +
+            'Do an xray report, with the following data' +
             'Patient Name: ' +
             patientInfo.PatientName +
             ',' +
