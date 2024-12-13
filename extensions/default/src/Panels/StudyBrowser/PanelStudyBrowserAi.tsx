@@ -150,6 +150,9 @@ function PanelStudyBrowserAi({
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
     console.log('updatedViewports', updatedViewports);
   };
+  useEffect(() => {
+    setBlobbing(false);
+  }, []);
 
   const getSOPInstanceUID = (imageId: string) => {
     // Access a loaded study's metadata

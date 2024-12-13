@@ -1111,10 +1111,20 @@ export default class HangingProtocolService extends PubSubService {
       this.stageIndex = 0;
     }
     const protocol = this.protocol;
+
+    // Check if protocol and stages are defined
+    if (!protocol || !protocol.stages || !protocol.stages[stageIdx]) {
+      console.warn('Protocol or stage is undefined');
+      return; // or return a default value
+    }
+
     const stage = protocol.stages[stageIdx];
     const defaultViewport = stage.defaultViewport || protocol.defaultViewport;
+
+    // Check if defaultViewport is defined
     if (!defaultViewport) {
-      return;
+      console.warn('No default viewport found');
+      return; // or return a default value
     }
 
     const useViewport = { ...defaultViewport };
