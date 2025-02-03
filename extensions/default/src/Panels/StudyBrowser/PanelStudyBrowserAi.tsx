@@ -480,12 +480,18 @@ function PanelStudyBrowserAi({
 
       // const url = 'https://api.groq.com/openai/v1/chat/completions';
       const imageUrl = clickedImage; // Use your Base64 string here
+      const instructions: string = `Instructions:
+Extract relevant information from the provided X-ray image (e.g., anatomical findings, abnormalities, technical details).
+
+Use the user-provided input (e.g., patient details, clinical history) to complete the form.
+
+Ensure the report aligns with Malaysia CPG guidelines for clarity, standardization, and legal compliance.`;
 
       const content = [
         {
           type: 'text',
           text:
-            'Do an xray report, with the following data' +
+            instructions +
             'Patient Name: ' +
             patientInfo.PatientName +
             ',' +
