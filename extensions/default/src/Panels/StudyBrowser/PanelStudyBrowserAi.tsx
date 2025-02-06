@@ -78,6 +78,7 @@ function PanelStudyBrowserAi({
   const [detectionLabel, setdetectionLabel] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [iid, setIid] = useState('');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   console.log('patientInfo', patientInfo);
 
   // multiple can be true or false
@@ -134,15 +135,26 @@ function PanelStudyBrowserAi({
       if (instanceId) {
         const url = 'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
         console.log('url: ', url);
-
-        setClickedImage(url);
+        try {
+          fetchResult(instanceId);
+        } catch (error) {
+          setClickedImage(url);
+        }
       }
+
+      // Show a notification for the action
+      uiNotificationService.show({
+        title: 'Thumbnail Selected',
+        message: 'The thumbnail has been successfully selected.',
+        type: 'success',
+        duration: 3000,
+      });
     } catch (error) {
       console.warn(error);
       uiNotificationService.show({
         title: 'Thumbnail Double Click',
         message: 'The selected display sets could not be added to the viewport.',
-        type: 'info',
+        type: 'error',
         duration: 3000,
       });
     }
@@ -150,6 +162,7 @@ function PanelStudyBrowserAi({
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
     console.log('updatedViewports', updatedViewports);
   };
+
   useEffect(() => {
     setBlobbing(false);
   }, []);
@@ -425,9 +438,15 @@ function PanelStudyBrowserAi({
 
   const handlePerformAIDiagnosis = async () => {
     try {
+      setIsAiGenerating(true);
       // Ensure clickedImage is available
       if (!clickedImage) {
-        console.warn('No image clicked to perform diagnosis.');
+        uiNotificationService.show({
+          title: 'No Image Selected',
+          message: 'Please select an image to perform diagnosis.',
+          type: 'warning',
+          duration: 3000,
+        });
         return;
       }
 
@@ -440,21 +459,18 @@ function PanelStudyBrowserAi({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            image_url: clickedImage, // Base64 image string
-            image_id: '123', // Replace with the actual image ID if available
-            overall_confidence_level: 0.3, // Set this based on your logic
-            overlap_confidence_level: 0.3, // Set this based on your logic
+            image_url: clickedImage,
+            image_id: '123',
+            overall_confidence_level: 0.3,
+            overlap_confidence_level: 0.3,
           }),
         }
       );
 
-      // Check if the response is ok (status in the range 200-299)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      console.log('response', response);
 
-      // Parse the JSON response
       const result = await response.json();
       console.log('Diagnosis Result:', result);
       const blob = result.detection_image; // Adjust MIME type if necessary
@@ -463,11 +479,36 @@ function PanelStudyBrowserAi({
       console.log('blob', blob);
       setBlobUrl(blob);
       setBlobbing(true);
+      setIsAiGenerating(false);
 
-      // viewportGridService.setDisplaySetsForViewports(blob);
+      // Show success notification
+      uiNotificationService.show({
+        title: 'AI Diagnosis Complete',
+        message: 'The AI diagnosis has been successfully performed.',
+        type: 'success',
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error performing AI diagnosis:', error);
+      uiNotificationService.show({
+        title: 'AI Diagnosis Error',
+        message: 'An error occurred while performing AI diagnosis.',
+        type: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setIsAiGenerating(false);
     }
+  };
+
+  // Helper function: Check if an image URL is accessible
+  const validateImageUrl = (url: string): Promise<boolean> => {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
   };
 
   const handlePerformAIReporting = async () => {
@@ -475,90 +516,214 @@ function PanelStudyBrowserAi({
       apiKey: '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',
       dangerouslyAllowBrowser: true,
     });
+
     if (clickedImage) {
-      console.log('clickedImage', clickedImage);
+      console.log('clickedImage:', clickedImage);
 
-      // const url = 'https://api.groq.com/openai/v1/chat/completions';
-      const imageUrl = clickedImage; // Use your Base64 string here
+      // Use clickedImage as the initial image URL (changed from const to let so we can update it)
+      let imageUrl = clickedImage;
+      console.log('Using imageUrl:', imageUrl);
+
+      // Validate the image URL before proceeding.
+      const isAccessible = await validateImageUrl(imageUrl);
+      if (!isAccessible) {
+        console.error('Image is not accessible. Original URL:', imageUrl);
+
+        // Attempt fallback with blobUrl, if available
+        if (blobUrl) {
+          imageUrl = 'data:image/jpeg;base64,' + blobUrl;
+          console.log('Fallback to blobUrl:', imageUrl);
+          // No further validation is needed for a Base64 inline image.
+        } else {
+          console.error('No fallback image available. Aborting AI Reporting.');
+          // Optionally, you can notify the user here.
+          return;
+        }
+      }
+
       const instructions: string = `Instructions:
-Extract relevant information from the provided X-ray image (e.g., anatomical findings, abnormalities, technical details).
+Generate a radiological report from the provided X-ray image and patient data. The report must follow the numbered format below, using numbers for sections and a dash "-" before each field item:
 
-Use the user-provided input (e.g., patient details, clinical history) to complete the form.
+1. Patient Identification
+   - Full Name: [Patient's Full Name]
+   - Age/Gender: [e.g., 62/F]
+   - MRN Number: [Unique Hospital MRN, e.g., MRN-123456]
+   - Date/Time of X-ray: [DD/MM/YYYY HH:MM]
 
-Ensure the report aligns with Malaysia CPG guidelines for clarity, standardization, and legal compliance.`;
+2. Clinical Information
+   - Referring Physician: [Name/Department]
+   - Clinical Indication: [e.g., "Suspected pneumonia," "Trauma post-fall"]
+   - Relevant History: [e.g., "Diabetic, smoker, 2-week history of cough"]
+
+3. Technical Details
+   - X-ray Type/Projection: [e.g., "Chest PA view," "AP/Lateral ankle"]
+   - Radiation Dose (if documented): [e.g., "DAP: 0.8 Gy·cm²"]
+
+4. Findings (Systematic Description)
+   - Provide a systematic description in anatomical order.
+     Example:
+       - Normal: "No acute fracture or dislocation. Lung fields are clear."
+       - Abnormal: "Comminuted fracture of the left tibial shaft with 5mm displacement."
+
+5. Impression
+   - Summarize the most significant findings.
+   - If applicable, link the findings to relevant CPG criteria.
+
+6. Recommendations
+   - Suggest next steps or further investigations per CPG guidelines.
+   - Include any safety or urgency notes (if necessary).
+
+7. Reporting Details
+   - Radiologist's Name & Credentials:
+   - Verification Note:
+   - Disclaimer:
+
+Use the provided patient data and image for context:
+Patient Name: ${patientInfo.PatientName}
+Patient Date of Birth: ${patientInfo.PatientDOB}
+Patient Sex: ${patientInfo.PatientSex}
+Short Diagnosis: ${detectionLabel}`;
 
       const content = [
         {
           type: 'text',
-          text:
-            instructions +
-            'Patient Name: ' +
-            patientInfo.PatientName +
-            ',' +
-            'Patient Date of Birth: ' +
-            patientInfo.PatientDOB +
-            ',' +
-            'Patient Sex: ' +
-            patientInfo.PatientSex +
-            ',' +
-            'Short Diagnosis: ' +
-            [detectionLabel],
+          text: instructions,
         },
         {
           type: 'image_url',
           image_url: {
-            url: imageUrl, // Ensure this is always provided
+            url: imageUrl,
           },
         },
       ];
 
-      // if (blobUrl != null) {
-      //   content.push({
-      //     type: 'image_url',
-      //     image_url: { url: 'data:image/jpeg;base64,' + blobUrl },
-      //   });
-      // }
-
-      // Encode the image as needed
-      const response = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'user',
-            content: content as ChatCompletionContentPart[], // Cast to the expected type
-          },
-        ],
-        model: 'llama-3.2-90b-vision-preview',
-        temperature: 0.7,
-        max_tokens: 2048,
-        top_p: 0.9,
-        stream: false,
-        stop: null,
-      });
-
-      console.log('response', response);
-      const json = response;
-
-      // const output = json.choices[0].text.replace(/\*/g, '').trim();
-      const output = json.choices[0].message.content.replace(/\*/g, '').trim();
-      setReportOutput(output);
-      console.log(output);
+      try {
+        const response = await groq.chat.completions.create({
+          messages: [
+            {
+              role: 'user',
+              content: content as ChatCompletionContentPart[],
+            },
+          ],
+          model: 'llama-3.2-90b-vision-preview',
+          temperature: 0.7,
+          max_tokens: 2048,
+          top_p: 0.9,
+          stream: false,
+          stop: null,
+        });
+        console.log('response', response);
+        const json = response;
+        // Remove asterisks and trim whitespace from output
+        const output = json.choices[0].message.content.replace(/\*/g, '').trim();
+        setReportOutput(output);
+        console.log(output);
+      } catch (error) {
+        console.error('Error in AI Reporting:', error);
+      }
     }
   };
 
   const onContinue = async () => {
-    // {{ edit_2 }}
+    // Notify user that report generation is starting
+    uiNotificationService.show({
+      title: 'Generating Report',
+      message: 'Please wait while the report is being generated.',
+      type: 'info',
+      duration: 3000,
+    });
+
     setIsGenerating(true); // Start generating
     await handlePerformAIReporting(); // Wait for the report to be generated
     setIsGenerating(false); // Stop generating
+
+    // Notify user that report generation is complete
+    uiNotificationService.show({
+      title: 'Report Generated',
+      message: 'The report has been successfully generated.',
+      type: 'success',
+      duration: 3000,
+    });
   };
   const closeDialog = () => {
     setIsDialogOpen(false); // Function to close the dialog
   };
 
   const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    doc.text(reportOutput || 'No report available', 10, 10); // Add reportOutput to the PDF
-    doc.save('patient_report.pdf'); // Save the PDF with a filename
+    // Create a jsPDF instance with orientation, unit, and format explicitly defined.
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const sideMargin = 20; // Margin for both left and right sides
+    let y = 10;
+    const lineHeight = 7;
+
+    // Use the reportOutput content or fall back to a default message.
+    const reportContent = reportOutput || 'No report available';
+    // Split the content by newline characters.
+    const lines = reportContent.split('\n');
+
+    lines.forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine === '') {
+        // Add extra spacing for an empty line.
+        y += lineHeight;
+        return;
+      }
+
+      // Special handling for the title.
+      if (trimmedLine === 'Radiological Report') {
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text(trimmedLine, pageWidth / 2, y, { align: 'center' });
+        y += lineHeight;
+        return;
+      }
+
+      // For every line with a colon, split into key and value parts.
+      if (trimmedLine.includes(':')) {
+        const colonIndex = trimmedLine.indexOf(':');
+        const keyPart = trimmedLine.substring(0, colonIndex + 1); // includes the colon
+        const valuePart = trimmedLine.substring(colonIndex + 1).trim();
+
+        // Print the key in bold.
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(keyPart, sideMargin, y);
+        const keyWidth = doc.getTextWidth(keyPart);
+
+        // Setup the available width then wrap the value text accordingly.
+        doc.setFont('Helvetica', 'normal');
+        const availableWidth = pageWidth - sideMargin * 2 - keyWidth;
+        const textLines = doc.splitTextToSize(valuePart, availableWidth);
+        doc.text(textLines, sideMargin + keyWidth, y);
+
+        // Increment y based on the number of lines used by the value.
+        y += textLines.length * lineHeight;
+      } else {
+        // For lines that do not contain a colon, render the text normally.
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(12);
+        const textLines = doc.splitTextToSize(trimmedLine, pageWidth - sideMargin * 2);
+        doc.text(textLines, sideMargin, y);
+        y += textLines.length * lineHeight;
+      }
+
+      // Add a new page if y exceeds the page height limits.
+      if (y > doc.internal.pageSize.getHeight() - sideMargin) {
+        doc.addPage();
+        y = 10;
+      }
+    });
+
+    // Save the generated PDF document.
+    doc.save('patient_report.pdf');
+
+    uiNotificationService.show({
+      title: 'PDF Downloaded',
+      message: 'The report has been successfully downloaded as a PDF.',
+      type: 'success',
+      duration: 3000,
+    });
   };
 
   const handleSaveReport = async () => {
@@ -578,8 +743,8 @@ Ensure the report aligns with Malaysia CPG guidelines for clarity, standardizati
 
     try {
       const response = await axios.post(
-        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/report`, // Update with your actual API URL
-        null, // No body needed since we're using query parameters
+        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/report`,
+        null,
         {
           params: {
             instance_id: instance_id,
@@ -588,10 +753,20 @@ Ensure the report aligns with Malaysia CPG guidelines for clarity, standardizati
         }
       );
 
-      console.log('Response: ', response);
-      console.log('Report saved to database');
+      uiNotificationService.show({
+        title: 'Report Saved',
+        message: 'The report has been successfully saved to the database.',
+        type: 'success',
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error saving report:', error.message);
+      uiNotificationService.show({
+        title: 'Save Report Error',
+        message: 'An error occurred while saving the report.',
+        type: 'error',
+        duration: 3000,
+      });
     }
   };
 
@@ -616,6 +791,36 @@ Ensure the report aligns with Malaysia CPG guidelines for clarity, standardizati
       }
     } catch (error) {
       console.error('Error fetching report data:', error);
+    }
+  };
+
+  const fetchResult = async (instance_id: string) => {
+    try {
+      // Fetch the report data from the DICOM instance attachments
+      const response = await axios.get(
+        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/result/${instance_id}` // Updated endpoint to fetch the specific attachment
+      );
+
+      // Extract the report data from the response
+      const resultData = response.data;
+      console.log('Fetched report data:', resultData);
+
+      // Check if the report data exists
+      if (resultData) {
+        console.log('Fetched result:', resultData);
+        const blob = resultData.detection_image; // Adjust MIME type if necessary
+        setdetectionLabel(resultData.detection_label);
+
+        console.log('blob', blob);
+        setBlobUrl(blob);
+        setBlobbing(true);
+        setIsAiGenerating(false);
+        return resultData.detection_image;
+      } else {
+        console.log('No result data found in the specified attachment.');
+      }
+    } catch (error) {
+      console.error('Error fetching result data:', error);
     }
   };
 
@@ -674,7 +879,12 @@ Ensure the report aligns with Malaysia CPG guidelines for clarity, standardizati
         viewPresets={viewPresets}
       />
       <div className="flex flex-col gap-4 text-xl font-bold">
-        <Button onClick={handlePerformAIDiagnosis}>Perform AI Diagnosis</Button>
+        <Button
+          onClick={handlePerformAIDiagnosis}
+          disabled={isAiGenerating}
+        >
+          {isAiGenerating ? 'AI Performing...' : 'Perform AI Diagnosis'}
+        </Button>
         <AlertDialog
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
