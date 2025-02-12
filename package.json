@@ -75,6 +75,7 @@
     "groq-sdk": "^0.7.0",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.453.0",
+    "react-toastify": "^11.0.3",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7"
   },
