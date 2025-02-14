@@ -569,7 +569,18 @@ Short Diagnosis: ${detectionLabel}`;
         const content = [
           {
             type: 'text',
-            text: "Analyze this medical image. Use strict format:\nStudy type: \nFindings: \nImpression: \nRecommendations: \nSummary:"
+            text: `Analyze this medical image for the following patient:
+            Patient Name: ${patientInfo.PatientName}
+            Patient Date of Birth: ${patientInfo.PatientDOB}
+            Patient Sex: ${patientInfo.PatientSex}
+
+            Please use strict format:
+            Study type:
+            Findings:
+            Impression:
+            Recommendations:
+            Summary:`
+
           },
           {
             type: 'image_url',
@@ -644,7 +655,22 @@ Short Diagnosis: ${detectionLabel}`;
           const base64Content = [
             {
               type: 'text',
-              text: "Analyze this medical image. Use strict format:\nStudy type: \nFindings: \nImpression: \nRecommendations: \nSummary:"
+              text: `Analyze this medical image for the following patient:
+              Patient Name: ${patientInfo.PatientName}
+              Patient Date of Birth: ${patientInfo.PatientDOB}
+              Patient Sex: ${patientInfo.PatientSex}
+
+              Please use strict format:
+              Patient Name:
+              Patient Date of Birth:
+              Patient Sex:
+
+              Study type:
+              Findings:
+              Impression:
+              Recommendations:
+              Summary:`
+
             },
             {
               type: 'image_url',
