@@ -524,75 +524,56 @@ function PanelStudyBrowserAi({
       console.log('Using imageUrl:', imageUrl);
 
       const instructions: string = `Instructions:
-Generate a radiological report from the provided X-ray image and patient data. The report must follow the numbered format below, using numbers for sections and a dash "-" before each field item:
+Generate a structured radiological report from the provided X-ray image and patient data. Use this exact format:
 
 1. Patient Identification
    - Full Name: [Patient's Full Name]
-   - Age/Gender: [e.g., 62/F]
-   - MRN Number: [Unique Hospital MRN, e.g., MRN-123456]
-   - Date/Time of X-ray: [DD/MM/YYYY HH:MM]
+   - Age/Gender: [Calculated Age]/[Patient Sex]
+   - MRN Number: [Patient ID]
+   - Date/Time of X-ray: [Current Date/Time in DD/MM/YYYY HH:MM format]
 
-2. Clinical Information
-   - Referring Physician: [Name/Department]
-   - Clinical Indication: [e.g., "Suspected pneumonia," "Trauma post-fall"]
-   - Relevant History: [e.g., "Diabetic, smoker, 2-week history of cough"]
+2. Study type
+   - [Imaging modality and projection]
 
-3. Technical Details
-   - X-ray Type/Projection: [e.g., "Chest PA view," "AP/Lateral ankle"]
-   - Radiation Dose (if documented): [e.g., "DAP: 0.8 Gy·cm²"]
+3. Findings
+   - [Systematic description of findings]
+   - [Relevant anatomical observations]
 
-4. Findings (Systematic Description)
-   - Provide a systematic description in anatomical order.
-     Example:
-       - Normal: "No acute fracture or dislocation. Lung fields are clear."
-       - Abnormal: "Comminuted fracture of the left tibial shaft with 5mm displacement."
+4. Impression
+   - [Concise summary of key findings]
+   - [Clinical correlation if applicable]
 
-5. Impression
-   - Summarize the most significant findings.
-   - If applicable, link the findings to relevant CPG criteria.
+5. Recommendations
+   - [Specific next steps or follow-up suggestions]
 
-6. Recommendations
-   - Suggest next steps or further investigations per CPG guidelines.
-   - Include any safety or urgency notes (if necessary).
+6. Summary
+   - [Brief overall assessment in 2-3 sentences]
 
-7. Reporting Details
-   - Radiologist's Name & Credentials:
-   - Verification Note:
-   - Disclaimer:
+Base this on the patient data:
+Name: ${patientInfo.PatientName}
+DOB: ${patientInfo.PatientDOB}
+Sex: ${patientInfo.PatientSex}
+Initial AI Detection: ${detectionLabel}`;
 
-Use the provided patient data and image for context:
-Patient Name: ${patientInfo.PatientName}
-Patient Date of Birth: ${patientInfo.PatientDOB}
-Patient Sex: ${patientInfo.PatientSex}
-Short Diagnosis: ${detectionLabel}`;
+      const content = [
+        {
+          type: 'text',
+          text: `Analyze this medical image and generate a structured report using ONLY these sections:
+            1. Patient Identification
+            2. Study type
+            3. Findings
+            4. Impression
+            5. Recommendations
+            6. Summary
 
-        const content = [
-          {
-            type: 'text',
-            text:`Analyze this medical image for the following patient:
-              Patient Name: ${patientInfo.PatientName}
-              Patient Date of Birth: ${patientInfo.PatientDOB}
-              Patient Sex: ${patientInfo.PatientSex}
-
-              Please use strict format:
-              Patient Name:
-              Patient Date of Birth:
-              Patient Sex:
-
-              Referring Physician:
-              Clinical Indication:
-              Relevant History:
-
-              Study type:
-              Findings:
-              Impression:
-              Recommendations:
-              Summary:`
-
-          },
-          {
-            type: 'image_url',
-            image_url: {
+            Patient Data:
+            Name: ${patientInfo.PatientName}
+            DOB: ${patientInfo.PatientDOB}
+            Sex: ${patientInfo.PatientSex}`
+        },
+        {
+          type: 'image_url',
+          image_url: {
             url: imageUrl,
           },
         },
@@ -663,25 +644,18 @@ Short Diagnosis: ${detectionLabel}`;
           const base64Content = [
             {
               type: 'text',
-              text: `Analyze this medical image for the following patient:
-              Patient Name: ${patientInfo.PatientName}
-              Patient Date of Birth: ${patientInfo.PatientDOB}
-              Patient Sex: ${patientInfo.PatientSex}
+              text: `Analyze this medical image and generate a structured report using ONLY these sections:
+              1. Patient Identification
+              2. Study type
+              3. Findings
+              4. Impression
+              5. Recommendations
+              6. Summary
 
-              Please use strict format:
-              Patient Name:
-              Patient Date of Birth:
-              Patient Sex:
-
-              Referring Physician:
-              Clinical Indication:
-              Relevant History:
-
-              Study type:
-              Findings:
-              Impression:
-              Recommendations:
-              Summary:`
+              Patient Data:
+              Name: ${patientInfo.PatientName}
+              DOB: ${patientInfo.PatientDOB}
+              Sex: ${patientInfo.PatientSex}`
 
             },
             {
@@ -731,7 +705,7 @@ Short Diagnosis: ${detectionLabel}`;
     }
   };
 
-  // Add the formatAnalysis helper function
+  // Updated formatAnalysis function
   function formatAnalysis(text) {
     const sections = {
       'Study type': '',
@@ -742,41 +716,70 @@ Short Diagnosis: ${detectionLabel}`;
     };
 
     let currentSection = null;
+    // Improved regex to handle numbered sections and different separators
+    const sectionPattern = /^\d*\.?\s*(Patient Identification|Study Type|Findings|Impression|Recommendations|Summary)[\s:-]*/i;
+
     text.split('\n').forEach(line => {
-      // Clean up markdown formatting
       line = line
-        .replace(/\*\*/g, '')    // Remove bold markers
-        .replace(/\*/g, '•')     // Replace single stars with bullets
-        .replace(/•+/g, '•')     // Consolidate multiple bullets
-        .replace(/_/g, '')       // Remove italics
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '•')
+        .replace(/•+/g, '•')
+        .replace(/_/g, '')
         .trim();
 
-      // Handle section headers
-      const sectionMatch = line.match(/^(Study Type|Study type|Findings|Impression|Recommendations|Summary):?\s*(.*)/i);
+      // Handle section detection
+      const sectionMatch = line.match(sectionPattern);
       if (sectionMatch) {
-        currentSection = sectionMatch[1].toLowerCase().replace(' ', ' ');
-        currentSection = currentSection.charAt(0).toUpperCase() + currentSection.slice(1);
-        sections[currentSection] = sectionMatch[2].replace(/^•\s*/, '');
+        const rawSection = sectionMatch[1].trim();
+        currentSection = rawSection.toLowerCase() === 'patient identification'
+          ? 'Study type'
+          : rawSection;
+
+        // Remove the entire matched section header from the line
+        line = line.replace(sectionMatch[0], '').trim();
       }
-      // Handle bullet points
-      else if (currentSection && line.startsWith('•')) {
-        sections[currentSection] += '\n' + line.trim();
-      }
-      // Handle regular text
-      else if (currentSection && line.length > 2) {
-        sections[currentSection] += ' ' + line.trim();
+
+      if (currentSection) {
+        // Clean up any remaining section markers
+        line = line.replace(/^(•|\d\.)\s*/, '').trim();
+
+        if (line.length > 0) {
+          sections[currentSection] += `${line}\n`;
+        }
       }
     });
 
     // Post-process formatting
     for (const [key, value] of Object.entries(sections)) {
       sections[key] = value
-        .replace(/(•\s*){2,}/g, '• ')  // Fix double bullets
-        .replace(/\n+/g, '\n')          // Remove extra newlines
+        .replace(/(\n•)/g, '\n• ')
+        .replace(/\s+/g, ' ')
         .trim();
+
+      // Special handling for Study type
+      if (key === 'Study type') {
+        sections[key] = sections[key]
+          .replace(/Patient(_| )?[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}/gi, '')
+          .replace(/(Name|MRN|DOB|Sex):\s*.*/g, '') // Remove entire patient info lines
+          .replace(/%¸/g, '')
+          .trim();
+
+        // Directly extract study type from original text if empty
+        if (!sections[key]) {
+          const studyTypeMatch = text.match(/Study Type[\s:-]*(.+?)(\.|\n|$)/i);
+          sections[key] = studyTypeMatch?.[1] || 'Radiographic examination not specified';
+        }
+      }
     }
 
     return sections;
+  }
+
+  // Helper function to fallback to original text if study type not detected
+  function extractStudyTypeFromReport(text) {
+    const studyTypePattern = /(Study Type|Modality|Imaging Technique):?\s*([^\n]+)/i;
+    const match = text.match(studyTypePattern);
+    return match ? match[2].trim() : 'Not specified (Fallback detection)';
   }
 
   const onContinue = async () => {
@@ -805,73 +808,158 @@ Short Diagnosis: ${detectionLabel}`;
   };
 
   const handleDownloadPDF = () => {
-    // Create a jsPDF instance with orientation, unit, and format explicitly defined.
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
-    const sideMargin = 20; // Margin for both left and right sides
-    let y = 10;
+    const sideMargin = 20;
+    let y = 30; // Start lower to account for header
     const lineHeight = 7;
+    const primaryColor = '#2B5797'; // Microsoft blue color
+    const reportDate = new Date().toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
-    // Use the reportOutput content or fall back to a default message.
+    // Add header on first page
+    doc.setFillColor(primaryColor);
+    doc.rect(0, 0, pageWidth, 20, 'F');
+    doc.setFontSize(18);
+    doc.setTextColor(255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MAIA AI Radiological Report', sideMargin, 12);
+    doc.setFontSize(10);
+    doc.text(`Report Date/Time: ${reportDate}`, sideMargin, 18);
+
+    // Add footer function
+    const addFooter = () => {
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(primaryColor);
+      doc.setLineWidth(0.5);
+      doc.line(sideMargin, pageHeight - 20, pageWidth - sideMargin, pageHeight - 20);
+      doc.setTextColor(primaryColor);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const footerText = 'MAIA Sdn Bhd | AI Medical Imaging | www.maia.com.my';
+      const textWidth = doc.getTextWidth(footerText);
+      doc.text(footerText, (pageWidth - textWidth) / 2, pageHeight - 15);
+    };
+
+    // Reset styling for content
+    doc.setTextColor(0);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+
     const reportContent = reportOutput || 'No report available';
-    // Split the content by newline characters.
-    const lines = reportContent.split('\n');
+    const sections = formatAnalysis(reportContent);
 
-    lines.forEach(line => {
-      const trimmedLine = line.trim();
-      if (trimmedLine === '') {
-        // Add extra spacing for an empty line.
-        y += lineHeight;
-        return;
-      }
+    // Create formatted content
+    const formattedContent = [
+      '',
+      { text: 'Patient Information', style: 'sectionHeader' },
+      { text: `Name: ${PatientName}`, style: 'patientInfo' },
+      { text: `MRN: ${PatientID}`, style: 'patientInfo' },
+      { text: `DOB: ${PatientDOB}`, style: 'patientInfo' },
+      { text: `Sex: ${PatientSex}`, style: 'patientInfo' },
+      '',
+      { text: 'Study Type', style: 'sectionHeader' },
+      ...(sections['Study type']?.split('\n').filter(l =>
+        !l.match(/Patient(_| )?[\w-]{36}/i) &&
+        !l.match(/(Name|MRN|DOB|Sex):/) &&
+        l.trim().length > 0
+      ) || ['Radiographic examination not specified']),
+      '',
+      { text: 'Findings', style: 'sectionHeader' },
+      ...(sections['Findings']?.split('\n') || ['No significant findings']),
+      '',
+      { text: 'Impression', style: 'sectionHeader' },
+      ...(sections['Impression']?.split('\n') || ['No impression available']),
+      '',
+      { text: 'Recommendations', style: 'sectionHeader' },
+      ...(sections['Recommendations']?.split('\n') || ['No recommendations']),
+      '',
+      { text: 'Summary', style: 'sectionHeader' },
+      ...(sections['Summary']?.split('\n') || ['No summary available'])
+    ];
 
-      // Special handling for the title.
-      if (trimmedLine === 'Radiological Report') {
-        doc.setFont('Helvetica', 'bold');
-        doc.setFontSize(18);
-        doc.text(trimmedLine, pageWidth / 2, y, { align: 'center' });
-        y += lineHeight;
-        return;
-      }
-
-      // For every line with a colon, split into key and value parts.
-      if (trimmedLine.includes(':')) {
-        const colonIndex = trimmedLine.indexOf(':');
-        const keyPart = trimmedLine.substring(0, colonIndex + 1); // includes the colon
-        const valuePart = trimmedLine.substring(colonIndex + 1).trim();
-
-        // Print the key in bold.
-        doc.setFont('Helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text(keyPart, sideMargin, y);
-        const keyWidth = doc.getTextWidth(keyPart);
-
-        // Setup the available width then wrap the value text accordingly.
-        doc.setFont('Helvetica', 'normal');
-        const availableWidth = pageWidth - sideMargin * 2 - keyWidth;
-        const textLines = doc.splitTextToSize(valuePart, availableWidth);
-        doc.text(textLines, sideMargin + keyWidth, y);
-
-        // Increment y based on the number of lines used by the value.
-        y += textLines.length * lineHeight;
-      } else {
-        // For lines that do not contain a colon, render the text normally.
-        doc.setFont('Helvetica', 'normal');
-        doc.setFontSize(12);
-        const textLines = doc.splitTextToSize(trimmedLine, pageWidth - sideMargin * 2);
-        doc.text(textLines, sideMargin, y);
-        y += textLines.length * lineHeight;
-      }
-
-      // Add a new page if y exceeds the page height limits.
-      if (y > doc.internal.pageSize.getHeight() - sideMargin) {
+    // Process content
+    formattedContent.forEach((item, index) => {
+      if (y > doc.internal.pageSize.getHeight() - 40) {
+        addFooter();
         doc.addPage();
-        y = 10;
+        y = 30; // Reset Y position and add new header
+        doc.setFillColor(primaryColor);
+        doc.rect(0, 0, pageWidth, 20, 'F');
+        doc.setTextColor(255);
+        doc.setFontSize(18);
+        doc.text('MAIA AI Radiological Report', sideMargin, 12);
+        doc.setFontSize(10);
+        doc.text(`Report Date/Time: ${reportDate}`, sideMargin, 18);
+        doc.setTextColor(0);
+      }
+
+      if (typeof item === 'object') {
+        if (item.style === 'header') {
+          doc.setFontSize(16);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(primaryColor);
+          doc.text(item.text, sideMargin, y);
+          y += lineHeight * 1.5;
+          return;
+        }
+        if (item.style === 'sectionHeader') {
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(primaryColor);
+          doc.text(item.text, sideMargin, y);
+          y += lineHeight * 1.2;
+          return;
+        }
+        if (item.style === 'patientInfo') {
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(0);
+
+          const splitText = doc.splitTextToSize(item.text, pageWidth - sideMargin * 2);
+          splitText.forEach((line, lineIndex) => {
+            doc.text(line, sideMargin, y + lineIndex * lineHeight);
+          });
+          y += splitText.length * lineHeight;
+          return;
+        }
+      }
+
+      if (typeof item === 'string') {
+        if (item === '') {
+          y += lineHeight / 2;
+          return;
+        }
+
+        // Remove bullet points for patient information
+        const isPatientInfo = item.startsWith('Name:') ||
+                             item.startsWith('MRN:') ||
+                             item.startsWith('Date of Birth:') ||
+                             item.startsWith('Sex:');
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', isPatientInfo ? 'bold' : 'normal');
+        doc.setTextColor(0);
+
+        // Process text without bullets for patient info
+        const text = item.replace(/^•\s*/, '');
+        const splitText = doc.splitTextToSize(text, pageWidth - sideMargin * 2);
+
+        splitText.forEach((line, lineIndex) => {
+          doc.text(line, sideMargin, y + lineIndex * lineHeight);
+        });
+
+        y += splitText.length * lineHeight;
       }
     });
 
-    // Save the generated PDF document.
-    doc.save('patient_report.pdf');
+    addFooter();
+    doc.save('maia_radiology_report.pdf');
 
     uiNotificationService.show({
       title: 'PDF Downloaded',
