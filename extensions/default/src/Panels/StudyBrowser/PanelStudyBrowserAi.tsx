@@ -520,26 +520,8 @@ function PanelStudyBrowserAi({
     if (clickedImage) {
       console.log('clickedImage:', clickedImage);
 
-      // Use clickedImage as the initial image URL (changed from const to let so we can update it)
-      let imageUrl = clickedImage;
+      const imageUrl = clickedImage;
       console.log('Using imageUrl:', imageUrl);
-
-      // Validate the image URL before proceeding.
-      const isAccessible = await validateImageUrl(imageUrl);
-      if (!isAccessible) {
-        console.error('Image is not accessible. Original URL:', imageUrl);
-
-        // Attempt fallback with blobUrl, if available
-        if (blobUrl) {
-          imageUrl = 'data:image/jpeg;base64,' + blobUrl;
-          console.log('Fallback to blobUrl:', imageUrl);
-          // No further validation is needed for a Base64 inline image.
-        } else {
-          console.error('No fallback image available. Aborting AI Reporting.');
-          // Optionally, you can notify the user here.
-          return;
-        }
-      }
 
       const instructions: string = `Instructions:
 Generate a radiological report from the provided X-ray image and patient data. The report must follow the numbered format below, using numbers for sections and a dash "-" before each field item:
@@ -597,12 +579,94 @@ Short Diagnosis: ${detectionLabel}`;
         },
       ];
 
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      const maxRetries = 3;
+      let retryCount = 0;
+
+      while (retryCount < maxRetries) {
+        try {
+          const response = await groq.chat.completions.create({
+            messages: [
+              {
+                role: 'user',
+                content: content as ChatCompletionContentPart[],
+              },
+            ],
+            model: 'llama-3.2-90b-vision-preview',
+            temperature: 0.7,
+            max_tokens: 2048,
+            top_p: 0.9,
+            stream: false,
+            stop: null,
+          });
+
+          // if (response?.object === 'error') {
+          //   throw new Error(`Groq API Error: ${response.message}`);
+          // }
+
+          console.log('Groq response:', response);
+          const output = response.choices[0].message.content.replace(/\*/g, '').trim();
+          setReportOutput(output);
+          console.log('Groq output:', output);
+
+          // If successful, show notification and exit
+          uiNotificationService.show({
+            title: 'Report Generated',
+            message: 'Report successfully generated using Groq API.',
+            type: 'success',
+            duration: 3000,
+          });
+          return;
+        } catch (error) {
+          console.error(`Groq API attempt ${retryCount + 1} failed:`, error);
+
+          if (error.message?.includes('429') || error.response?.status === 429) {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+              console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+              await delay(waitTime);
+              continue;
+            }
+          } else {
+            // If it's not a rate limit error, break immediately
+            break;
+          }
+        }
+      }
+
+      // If we're here, Groq API failed all retries or had a non-rate-limit error
+      console.log('Falling back to Groq API with base64 image...');
+
       try {
-        const response = await groq.chat.completions.create({
+        // Convert image URL to base64
+        const response = await fetch(clickedImage);
+        const blob = await response.blob();
+        const base64Image = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+
+        // Create content with base64 image
+        const base64Content = [
+          {
+            type: 'text',
+            text: instructions,
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: base64Image as string,
+            },
+          },
+        ];
+
+        const fallbackResponse = await groq.chat.completions.create({
           messages: [
             {
               role: 'user',
-              content: content as ChatCompletionContentPart[],
+              content: base64Content as ChatCompletionContentPart[],
             },
           ],
           model: 'llama-3.2-90b-vision-preview',
@@ -612,14 +676,27 @@ Short Diagnosis: ${detectionLabel}`;
           stream: false,
           stop: null,
         });
-        console.log('response', response);
-        const json = response;
-        // Remove asterisks and trim whitespace from output
-        const output = json.choices[0].message.content.replace(/\*/g, '').trim();
-        setReportOutput(output);
-        console.log(output);
-      } catch (error) {
-        console.error('Error in AI Reporting:', error);
+
+        const fallbackOutput = fallbackResponse.choices[0].message.content
+          .replace(/\*/g, '')
+          .trim();
+        setReportOutput(fallbackOutput);
+        console.log('Fallback Groq output:', fallbackOutput);
+
+        uiNotificationService.show({
+          title: 'Report Generated',
+          message: 'Report successfully generated using fallback method.',
+          type: 'success',
+          duration: 3000,
+        });
+      } catch (fallbackError) {
+        console.error('Both API attempts failed:', fallbackError);
+        uiNotificationService.show({
+          title: 'Report Generation Failed',
+          message: 'Failed to generate report using both primary and fallback methods.',
+          type: 'error',
+          duration: 5000,
+        });
       }
     }
   };
@@ -958,8 +1035,8 @@ Short Diagnosis: ${detectionLabel}`;
                   <div>
                     <Textarea
                       className="h-[680px] border-white text-lg text-white"
-                      value={reportOutput} // {{ edit_2 }}
-                      onChange={e => setReportOutput(e.target.value)} // {{ edit_3 }}
+                      value={reportOutput}
+                      onChange={e => setReportOutput(e.target.value)}
                     />
                   </div>
                 </AlertDialogDescription>
