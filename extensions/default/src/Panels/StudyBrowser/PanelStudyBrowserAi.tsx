@@ -569,17 +569,25 @@ Short Diagnosis: ${detectionLabel}`;
         const content = [
           {
             type: 'text',
-            text: `Analyze this medical image for the following patient:
-            Patient Name: ${patientInfo.PatientName}
-            Patient Date of Birth: ${patientInfo.PatientDOB}
-            Patient Sex: ${patientInfo.PatientSex}
+            text:`Analyze this medical image for the following patient:
+              Patient Name: ${patientInfo.PatientName}
+              Patient Date of Birth: ${patientInfo.PatientDOB}
+              Patient Sex: ${patientInfo.PatientSex}
 
-            Please use strict format:
-            Study type:
-            Findings:
-            Impression:
-            Recommendations:
-            Summary:`
+              Please use strict format:
+              Patient Name:
+              Patient Date of Birth:
+              Patient Sex:
+
+              Referring Physician:
+              Clinical Indication:
+              Relevant History:
+
+              Study type:
+              Findings:
+              Impression:
+              Recommendations:
+              Summary:`
 
           },
           {
@@ -664,6 +672,10 @@ Short Diagnosis: ${detectionLabel}`;
               Patient Name:
               Patient Date of Birth:
               Patient Sex:
+
+              Referring Physician:
+              Clinical Indication:
+              Relevant History:
 
               Study type:
               Findings:
