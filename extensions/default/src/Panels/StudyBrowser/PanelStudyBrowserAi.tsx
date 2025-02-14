@@ -566,14 +566,14 @@ Patient Date of Birth: ${patientInfo.PatientDOB}
 Patient Sex: ${patientInfo.PatientSex}
 Short Diagnosis: ${detectionLabel}`;
 
-      const content = [
-        {
-          type: 'text',
-          text: instructions,
-        },
-        {
-          type: 'image_url',
-          image_url: {
+        const content = [
+          {
+            type: 'text',
+            text: "Analyze this medical image. Use strict format:\nStudy type: \nFindings: \nImpression: \nRecommendations: \nSummary:"
+          },
+          {
+            type: 'image_url',
+            image_url: {
             url: imageUrl,
           },
         },
@@ -585,39 +585,33 @@ Short Diagnosis: ${detectionLabel}`;
 
       while (retryCount < maxRetries) {
         try {
-          const response = await groq.chat.completions.create({
-            messages: [
-              {
-                role: 'user',
-                content: content as ChatCompletionContentPart[],
-              },
-            ],
-            model: 'llama-3.2-90b-vision-preview',
-            temperature: 0.7,
-            max_tokens: 2048,
-            top_p: 0.9,
-            stream: false,
-            stop: null,
-          });
+        const response = await groq.chat.completions.create({
+          messages: [
+            {
+              role: 'user',
+              content: content as ChatCompletionContentPart[],
+            },
+          ],
+          model: 'llama-3.2-90b-vision-preview',
+          temperature: 0.1,
+          max_tokens: 2048,
+          top_p: 0.9,
+          stream: false,
+          stop: null,
+        });
 
-          // if (response?.object === 'error') {
-          //   throw new Error(`Groq API Error: ${response.message}`);
-          // }
-
-          console.log('Groq response:', response);
-          const output = response.choices[0].message.content.replace(/\*/g, '').trim();
+        const output = response.choices[0].message.content.replace(/\*/g, '').trim();
           setReportOutput(output);
           console.log('Groq output:', output);
 
-          // If successful, show notification and exit
-          uiNotificationService.show({
-            title: 'Report Generated',
-            message: 'Report successfully generated using Groq API.',
-            type: 'success',
-            duration: 3000,
-          });
-          return;
-        } catch (error) {
+        uiNotificationService.show({
+          title: 'Report Generated',
+          message: 'Report successfully generated using Groq API.',
+          type: 'success',
+          duration: 3000,
+        });
+        return;
+      } catch (error) {
           console.error(`Groq API attempt ${retryCount + 1} failed:`, error);
 
           if (error.message?.includes('429') || error.response?.status === 429) {
@@ -638,44 +632,42 @@ Short Diagnosis: ${detectionLabel}`;
       // If we're here, Groq API failed all retries or had a non-rate-limit error
       console.log('Falling back to Groq API with base64 image...');
 
-      try {
-        // Convert image URL to base64
-        const response = await fetch(clickedImage);
-        const blob = await response.blob();
-        const base64Image = await new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
+        try {
+          const response = await fetch(clickedImage);
+          const blob = await response.blob();
+          const base64Image = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
 
-        // Create content with base64 image
-        const base64Content = [
-          {
-            type: 'text',
-            text: instructions,
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: base64Image as string,
-            },
-          },
-        ];
-
-        const fallbackResponse = await groq.chat.completions.create({
-          messages: [
+          const base64Content = [
             {
-              role: 'user',
-              content: base64Content as ChatCompletionContentPart[],
+              type: 'text',
+              text: "Analyze this medical image. Use strict format:\nStudy type: \nFindings: \nImpression: \nRecommendations: \nSummary:"
             },
-          ],
-          model: 'llama-3.2-90b-vision-preview',
-          temperature: 0.7,
-          max_tokens: 2048,
-          top_p: 0.9,
-          stream: false,
-          stop: null,
-        });
+            {
+              type: 'image_url',
+              image_url: {
+                url: base64Image as string,
+              }
+            }
+          ];
+
+          const fallbackResponse = await groq.chat.completions.create({
+            messages: [
+              {
+                role: 'user',
+                content: base64Content as ChatCompletionContentPart[],
+              },
+            ],
+            model: 'llama-3.2-90b-vision-preview',
+            temperature: 0.1,
+            max_tokens: 2048,
+            top_p: 0.9,
+            stream: false,
+            stop: null,
+          });
 
         const fallbackOutput = fallbackResponse.choices[0].message.content
           .replace(/\*/g, '')
@@ -683,23 +675,71 @@ Short Diagnosis: ${detectionLabel}`;
         setReportOutput(fallbackOutput);
         console.log('Fallback Groq output:', fallbackOutput);
 
-        uiNotificationService.show({
-          title: 'Report Generated',
-          message: 'Report successfully generated using fallback method.',
-          type: 'success',
-          duration: 3000,
-        });
-      } catch (fallbackError) {
-        console.error('Both API attempts failed:', fallbackError);
-        uiNotificationService.show({
-          title: 'Report Generation Failed',
-          message: 'Failed to generate report using both primary and fallback methods.',
-          type: 'error',
-          duration: 5000,
-        });
-      }
+          uiNotificationService.show({
+            title: 'Report Generated',
+            message: 'Report successfully generated using fallback method.',
+            type: 'success',
+            duration: 3000,
+          });
+        } catch (fallbackError) {
+          console.error('Both API attempts failed:', fallbackError);
+          uiNotificationService.show({
+            title: 'Report Generation Failed',
+            message: 'Failed to generate report using both primary and fallback methods.',
+            type: 'error',
+            duration: 5000,
+          });
+        }
     }
   };
+
+  // Add the formatAnalysis helper function
+  function formatAnalysis(text) {
+    const sections = {
+      'Study type': '',
+      'Findings': '',
+      'Impression': '',
+      'Recommendations': '',
+      'Summary': ''
+    };
+
+    let currentSection = null;
+    text.split('\n').forEach(line => {
+      // Clean up markdown formatting
+      line = line
+        .replace(/\*\*/g, '')    // Remove bold markers
+        .replace(/\*/g, '•')     // Replace single stars with bullets
+        .replace(/•+/g, '•')     // Consolidate multiple bullets
+        .replace(/_/g, '')       // Remove italics
+        .trim();
+
+      // Handle section headers
+      const sectionMatch = line.match(/^(Study Type|Study type|Findings|Impression|Recommendations|Summary):?\s*(.*)/i);
+      if (sectionMatch) {
+        currentSection = sectionMatch[1].toLowerCase().replace(' ', ' ');
+        currentSection = currentSection.charAt(0).toUpperCase() + currentSection.slice(1);
+        sections[currentSection] = sectionMatch[2].replace(/^•\s*/, '');
+      }
+      // Handle bullet points
+      else if (currentSection && line.startsWith('•')) {
+        sections[currentSection] += '\n' + line.trim();
+      }
+      // Handle regular text
+      else if (currentSection && line.length > 2) {
+        sections[currentSection] += ' ' + line.trim();
+      }
+    });
+
+    // Post-process formatting
+    for (const [key, value] of Object.entries(sections)) {
+      sections[key] = value
+        .replace(/(•\s*){2,}/g, '• ')  // Fix double bullets
+        .replace(/\n+/g, '\n')          // Remove extra newlines
+        .trim();
+    }
+
+    return sections;
+  }
 
   const onContinue = async () => {
     // Notify user that report generation is starting
