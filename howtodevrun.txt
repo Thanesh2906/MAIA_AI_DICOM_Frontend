@@ -1,0 +1,9 @@
+yarn install
+
+yarn run cli link-extension .\maia-extensions\ai
+
+yarn run cli link-mode .\maia-modes\ai-analysis
+
+yarn build
+
+yarn start
