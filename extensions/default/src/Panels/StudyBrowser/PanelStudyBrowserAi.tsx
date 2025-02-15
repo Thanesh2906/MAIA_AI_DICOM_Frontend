@@ -513,41 +513,39 @@ function PanelStudyBrowserAi({
   };
 
   const handlePerformAIReporting = async () => {
-    const imageUrl = clickedImage + "?size=1024"; // Increase image size
+    const imageUrl = clickedImage + "?size=2048";
     console.log('Using enlarged image URL:', imageUrl);
 
-    // Convert image URL to base64
     const base64Image:any = await convertImageToBase64(imageUrl);
-    console.log('Base64 Image:', base64Image);
-
-    // Modified instructions with hairline fracture emphasis
+    
+    // Updated instructions without hairline fracture specificity
     const instructions = `Instructions:
-    Generate a structured radiological report with SPECIAL ATTENTION to hairline fractures. Follow this exact format:
+    Generate a structured radiological report following this format:
 
     1. Patient Identification
-       - Full Name: [Patient's Full Name]
-       - Age/Gender: [Calculated Age]/[Patient Sex]
-       - MRN Number: [Patient ID]
-       - Date/Time of X-ray: [Current Date/Time]
+       - Full Name: ${PatientName || 'Not available'}
+       - MRN: ${PatientID || 'Not available'}
+       - DOB: ${formatDate(PatientDOB) || 'Not available'}
+       - Sex: ${PatientSex || 'Not specified'}
 
     2. Study type
-       - [Imaging modality and projection - emphasize resolution quality]
+       - [Imaging modality and projection - note image quality]
 
     3. Findings
-       - [Systematic description with dedicated hairline fracture check]
-       - [Note any subtle cortical disruptions or trabecular irregularities]
-       - [Mention fracture location, orientation, and extension if present]
+       - [Detailed description of anatomical structures]
+       - [Note any detected abnormalities or anomalies]
+       - [Describe location and characteristics of findings]
 
     4. Impression
-       - [Clear statement about hairline fracture presence/absence]
-       - [Differential diagnosis for ambiguous cases]
+       - [Summary of significant findings]
+       - [Clinical correlation if needed]
 
     5. Recommendations
-       - [Suggest CT scan if any suspicion of hairline fracture]
-       - [Follow-up timeline based on findings]
+       - [Suggest appropriate next steps based on findings]
+       - [Follow-up timeline if required]
 
     6. Summary
-       - [Concise summary emphasizing fracture status]`;
+       - [Concise overview of examination results]`;
 
     try {
       // Initialize OpenAI
@@ -611,7 +609,7 @@ function PanelStudyBrowserAi({
   // Updated formatAnalysis function
   function formatAnalysis(text) {
     const sections = {
-      'Study type': '',
+      'Type': '',
       'Findings': '',
       'Impression': '',
       'Recommendations': '',
@@ -619,8 +617,10 @@ function PanelStudyBrowserAi({
     };
 
     let currentSection = null;
-    // Improved regex to handle numbered sections and different separators
-    const sectionPattern = /^\d*\.?\s*(Patient Identification|Study Type|Findings|Impression|Recommendations|Summary)[\s:-]*/i;
+    const sectionPattern = /^\d*\.?\s*(Patient Identification|Type|Study Type|Findings|Impression|Recommendations|Summary)[\s:-]*/i;
+    
+    // Add pattern to match radiologist signature lines
+    const radiologistPattern = /^-{3}\s*Radiologist:\s*\[.*\]\s*Date:\s*\[.*\]/i;
 
     text.split('\n').forEach(line => {
       line = line
@@ -628,7 +628,13 @@ function PanelStudyBrowserAi({
         .replace(/\*/g, '•')
         .replace(/•+/g, '•')
         .replace(/_/g, '')
+        .replace(/---/g, '')
         .trim();
+
+      // Skip radiologist signature lines
+      if (radiologistPattern.test(line)) {
+        return; // Skip this line entirely
+      }
 
       // Handle section detection
       const sectionMatch = line.match(sectionPattern);
@@ -650,27 +656,36 @@ function PanelStudyBrowserAi({
           sections[currentSection] += `${line}\n`;
         }
       }
+
+      // Updated findings description
+      if (currentSection === 'Findings') {
+        line = line
+          .replace(/hairline fracture/gi, 'abnormality') // Replace specific terms
+          .replace(/fracture/gi, 'abnormality');
+      }
     });
 
     // Post-process formatting
     for (const [key, value] of Object.entries(sections)) {
       sections[key] = value
+        .replace(/hairline fracture/gi, 'abnormality')
+        .replace(/fracture/gi, 'abnormality')
+        .replace(/CT scan/gi, 'further imaging') // Replace specific recommendations
         .replace(/(\n•)/g, '\n• ')
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Special handling for Study type
-      if (key === 'Study type') {
+      // Special handling for Type
+      if (key === 'Type') {
         sections[key] = sections[key]
           .replace(/Patient(_| )?[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}/gi, '')
-          .replace(/(Name|MRN|DOB|Sex):\s*.*/g, '') // Remove entire patient info lines
+          .replace(/(Name|MRN|DOB|Sex):\s*.*/g, '')
           .replace(/%¸/g, '')
           .trim();
 
-        // Directly extract study type from original text if empty
         if (!sections[key]) {
-          const studyTypeMatch = text.match(/Study Type[\s:-]*(.+?)(\.|\n|$)/i);
-          sections[key] = studyTypeMatch?.[1] || 'Radiographic examination not specified';
+          const studyTypeMatch = text.match(/(Study Type|Type|Modality)[\s:-]*(.+?)(\.|\n|$)/i);
+          sections[key] = studyTypeMatch?.[2] || 'Radiographic examination not specified';
         }
       }
     }
@@ -714,8 +729,8 @@ function PanelStudyBrowserAi({
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
     const sideMargin = 20;
-    let y = 30; // Start lower to account for header
-    const lineHeight = 7;
+    let y = 28; // Start lower to account for header
+    const lineHeight = 6;
     const primaryColor = '#2B5797'; // Microsoft blue color
     const reportDate = new Date().toLocaleString('en-GB', {
       day: '2-digit',
@@ -742,7 +757,7 @@ function PanelStudyBrowserAi({
       doc.setLineWidth(0.5);
       doc.line(sideMargin, pageHeight - 20, pageWidth - sideMargin, pageHeight - 20);
       doc.setTextColor(primaryColor);
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       const footerText = 'MAIA Sdn Bhd | AI Medical Imaging | www.maia.com.my';
       const textWidth = doc.getTextWidth(footerText);
@@ -761,13 +776,13 @@ function PanelStudyBrowserAi({
     const formattedContent = [
       '',
       { text: 'Patient Information', style: 'sectionHeader' },
-      { text: `Name: ${PatientName}`, style: 'patientInfo' },
-      { text: `MRN: ${PatientID}`, style: 'patientInfo' },
-      { text: `DOB: ${PatientDOB}`, style: 'patientInfo' },
-      { text: `Sex: ${PatientSex}`, style: 'patientInfo' },
+      { text: `Name: ${PatientName || 'Not available'}`, style: 'patientInfo' },
+      { text: `MRN: ${PatientID || 'Not available'}`, style: 'patientInfo' },
+      { text: `DOB: ${formatDate(PatientDOB) || 'Not available'}`, style: 'patientInfo' },
+      { text: `Sex: ${PatientSex || 'Not specified'}`, style: 'patientInfo' },
       '',
-      { text: 'Study Type', style: 'sectionHeader' },
-      ...(sections['Study type']?.split('\n').filter(l =>
+      { text: 'Type', style: 'sectionHeader' },
+      ...(sections['Type']?.split('\n').filter(l =>
         !l.match(/Patient(_| )?[\w-]{36}/i) &&
         !l.match(/(Name|MRN|DOB|Sex):/) &&
         l.trim().length > 0
@@ -788,10 +803,10 @@ function PanelStudyBrowserAi({
 
     // Process content
     formattedContent.forEach((item, index) => {
-      if (y > doc.internal.pageSize.getHeight() - 40) {
+      if (y > doc.internal.pageSize.getHeight() - 30) {
         addFooter();
         doc.addPage();
-        y = 30; // Reset Y position and add new header
+        y = 30;
         doc.setFillColor(primaryColor);
         doc.rect(0, 0, pageWidth, 20, 'F');
         doc.setTextColor(255);
@@ -816,11 +831,11 @@ function PanelStudyBrowserAi({
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(primaryColor);
           doc.text(item.text, sideMargin, y);
-          y += lineHeight * 1.2;
+          y += lineHeight * 1.1;
           return;
         }
         if (item.style === 'patientInfo') {
-          doc.setFontSize(12);
+          doc.setFontSize(11);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(0);
 
@@ -828,14 +843,14 @@ function PanelStudyBrowserAi({
           splitText.forEach((line, lineIndex) => {
             doc.text(line, sideMargin, y + lineIndex * lineHeight);
           });
-          y += splitText.length * lineHeight;
+          y += splitText.length * lineHeight * 0.9;
           return;
         }
       }
 
       if (typeof item === 'string') {
         if (item === '') {
-          y += lineHeight / 2;
+          y += lineHeight * 0.4;
           return;
         }
 
@@ -845,7 +860,7 @@ function PanelStudyBrowserAi({
                              item.startsWith('Date of Birth:') ||
                              item.startsWith('Sex:');
 
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.setFont('helvetica', isPatientInfo ? 'bold' : 'normal');
         doc.setTextColor(0);
 
@@ -861,6 +876,7 @@ function PanelStudyBrowserAi({
       }
     });
 
+    // Ensure footer is added to the final page
     addFooter();
     doc.save('maia_radiology_report.pdf');
 
@@ -943,7 +959,7 @@ function PanelStudyBrowserAi({
   const fetchResult = async (instance_id: string) => {
     try {
       const response = await axios.get(
-        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/result/${instance_id}?size=1024`
+        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/result/${instance_id}?size=2048`
       );
 
       // Extract the report data from the response
@@ -1141,20 +1157,19 @@ export default PanelStudyBrowserAi;
  * @param {*} studies
  */
 function _mapDataSourceStudies(studies) {
-  return studies.map(study => {
-    // TODO: Why does the data source return in this format?
-    return {
-      AccessionNumber: study.accession,
-      StudyDate: study.date,
-      StudyDescription: study.description,
-      NumInstances: study.instances,
-      ModalitiesInStudy: study.modalities,
-      PatientID: study.mrn,
-      PatientName: study.patientName,
-      StudyInstanceUID: study.studyInstanceUid,
-      StudyTime: study.time,
-    };
-  });
+  return studies.map(study => ({
+    AccessionNumber: study.accession,
+    StudyDate: study.date,
+    StudyDescription: study.description,
+    NumInstances: study.instances,
+    ModalitiesInStudy: study.modalities,
+    PatientID: study.mrn || study.PatientID,
+    PatientName: study.patientName || study.PatientName,
+    StudyInstanceUID: study.studyInstanceUid,
+    StudyTime: study.time,
+    PatientDOB: study.PatientBirthDate || 'Unknown',
+    PatientSex: study.PatientSex || 'U'
+  }));
 }
 
 function _mapDisplaySets(displaySets, thumbnailImageSrcMap) {
