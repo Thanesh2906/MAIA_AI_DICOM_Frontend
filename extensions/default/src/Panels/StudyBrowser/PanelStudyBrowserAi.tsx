@@ -123,7 +123,7 @@ function PanelStudyBrowserAi({
       const imageId = imageIds[0];
       setIid(imageId);
       console.log('imageId', imageId);
-      setClickedImage(imageId);
+      // setClickedImage(imageId);
 
       const sopInstanceUID = await getSOPInstanceUID(imageId);
       console.log('sopInstanceUID', sopInstanceUID);
