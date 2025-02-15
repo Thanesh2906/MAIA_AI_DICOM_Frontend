@@ -32,6 +32,7 @@ import FormData from 'form-data';
 import dcmjs from 'dcmjs';
 import Groq from 'groq-sdk';
 import { ChatCompletionContentPart } from 'groq-sdk/resources/chat/completions';
+import OpenAI from "openai";
 
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
@@ -512,197 +513,99 @@ function PanelStudyBrowserAi({
   };
 
   const handlePerformAIReporting = async () => {
-    const groq = new Groq({
-      apiKey: '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',
-      dangerouslyAllowBrowser: true,
-    });
+    const imageUrl = clickedImage + "?size=1024"; // Increase image size
+    console.log('Using enlarged image URL:', imageUrl);
 
-    if (clickedImage) {
-      console.log('clickedImage:', clickedImage);
+    // Convert image URL to base64
+    const base64Image:any = await convertImageToBase64(imageUrl);
+    console.log('Base64 Image:', base64Image);
 
-      const imageUrl = clickedImage;
-      console.log('Using imageUrl:', imageUrl);
+    // Modified instructions with hairline fracture emphasis
+    const instructions = `Instructions:
+    Generate a structured radiological report with SPECIAL ATTENTION to hairline fractures. Follow this exact format:
 
-      const instructions: string = `Instructions:
-Generate a structured radiological report from the provided X-ray image and patient data. Use this exact format:
+    1. Patient Identification
+       - Full Name: [Patient's Full Name]
+       - Age/Gender: [Calculated Age]/[Patient Sex]
+       - MRN Number: [Patient ID]
+       - Date/Time of X-ray: [Current Date/Time]
 
-1. Patient Identification
-   - Full Name: [Patient's Full Name]
-   - Age/Gender: [Calculated Age]/[Patient Sex]
-   - MRN Number: [Patient ID]
-   - Date/Time of X-ray: [Current Date/Time in DD/MM/YYYY HH:MM format]
+    2. Study type
+       - [Imaging modality and projection - emphasize resolution quality]
 
-2. Study type
-   - [Imaging modality and projection]
+    3. Findings
+       - [Systematic description with dedicated hairline fracture check]
+       - [Note any subtle cortical disruptions or trabecular irregularities]
+       - [Mention fracture location, orientation, and extension if present]
 
-3. Findings
-   - [Systematic description of findings]
-   - [Relevant anatomical observations]
+    4. Impression
+       - [Clear statement about hairline fracture presence/absence]
+       - [Differential diagnosis for ambiguous cases]
 
-4. Impression
-   - [Concise summary of key findings]
-   - [Clinical correlation if applicable]
+    5. Recommendations
+       - [Suggest CT scan if any suspicion of hairline fracture]
+       - [Follow-up timeline based on findings]
 
-5. Recommendations
-   - [Specific next steps or follow-up suggestions]
+    6. Summary
+       - [Concise summary emphasizing fracture status]`;
 
-6. Summary
-   - [Brief overall assessment in 2-3 sentences]
+    try {
+      // Initialize OpenAI
+      const openai = new OpenAI({
+        apiKey: "xai-PRP9mLhkXN9gnhJ6cQqEyGmla4f5Sx6D3BdTzQBjapGM7HG3QKsnGWND7WmmpIBxWFYJYOQVsnowNbh7",
+        dangerouslyAllowBrowser: true,
+        baseURL: "https://api.x.ai/v1",
+      });
 
-Base this on the patient data:
-Name: ${patientInfo.PatientName}
-DOB: ${patientInfo.PatientDOB}
-Sex: ${patientInfo.PatientSex}
-Initial AI Detection: ${detectionLabel}`;
-
-      const content = [
-        {
-          type: 'text',
-          text: `Analyze this medical image and generate a structured report using ONLY these sections:
-            1. Patient Identification
-            2. Study type
-            3. Findings
-            4. Impression
-            5. Recommendations
-            6. Summary
-
-            Patient Data:
-            Name: ${patientInfo.PatientName}
-            DOB: ${patientInfo.PatientDOB}
-            Sex: ${patientInfo.PatientSex}`
-        },
-        {
-          type: 'image_url',
-          image_url: {
-            url: imageUrl,
-          },
-        },
-      ];
-
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-      const maxRetries = 3;
-      let retryCount = 0;
-
-      while (retryCount < maxRetries) {
-        try {
-        const response = await groq.chat.completions.create({
-          messages: [
-            {
-              role: 'user',
-              content: content as ChatCompletionContentPart[],
-            },
-          ],
-          model: 'llama-3.2-90b-vision-preview',
-          temperature: 0.1,
-          max_tokens: 2048,
-          top_p: 0.9,
-          stream: false,
-          stop: null,
-        });
-
-        const output = response.choices[0].message.content.replace(/\*/g, '').trim();
-          setReportOutput(output);
-          console.log('Groq output:', output);
-
-        uiNotificationService.show({
-          title: 'Report Generated',
-          message: 'Report successfully generated using Groq API.',
-          type: 'success',
-          duration: 3000,
-        });
-        return;
-      } catch (error) {
-          console.error(`Groq API attempt ${retryCount + 1} failed:`, error);
-
-          if (error.message?.includes('429') || error.response?.status === 429) {
-            retryCount++;
-            if (retryCount < maxRetries) {
-              const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
-              console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
-              await delay(waitTime);
-              continue;
-            }
-          } else {
-            // If it's not a rate limit error, break immediately
-            break;
-          }
-        }
-      }
-
-      // If we're here, Groq API failed all retries or had a non-rate-limit error
-      console.log('Falling back to Groq API with base64 image...');
-
-        try {
-          const response = await fetch(clickedImage);
-          const blob = await response.blob();
-          const base64Image = await new Promise(resolve => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-
-          const base64Content = [
-            {
-              type: 'text',
-              text: `Analyze this medical image and generate a structured report using ONLY these sections:
-              1. Patient Identification
-              2. Study type
-              3. Findings
-              4. Impression
-              5. Recommendations
-              6. Summary
-
-              Patient Data:
-              Name: ${patientInfo.PatientName}
-              DOB: ${patientInfo.PatientDOB}
-              Sex: ${patientInfo.PatientSex}`
-
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: base64Image as string,
-              }
-            }
-          ];
-
-          const fallbackResponse = await groq.chat.completions.create({
-            messages: [
+      // Create completion using OpenAI
+      const completion = await openai.chat.completions.create({
+        model: "grok-2-vision-1212",
+        messages: [
+          {
+            role: "user",
+            content: [
               {
-                role: 'user',
-                content: base64Content as ChatCompletionContentPart[],
+                type: "image_url",
+                image_url: {
+                  url: base64Image, // Use base64 image here
+                  detail: "high",
+                },
+              },
+              {
+                type: "text",
+                text: instructions,
               },
             ],
-            model: 'llama-3.2-90b-vision-preview',
-            temperature: 0.1,
-            max_tokens: 2048,
-            top_p: 0.9,
-            stream: false,
-            stop: null,
-          });
+          },
+        ],
+      });
 
-        const fallbackOutput = fallbackResponse.choices[0].message.content
-          .replace(/\*/g, '')
-          .trim();
-        setReportOutput(fallbackOutput);
-        console.log('Fallback Groq output:', fallbackOutput);
+      const output = completion.choices[0].message.content;
+      // Maintain existing formatting
+      setReportOutput(output.replace(/\*/g, '').trim());
 
-          uiNotificationService.show({
-            title: 'Report Generated',
-            message: 'Report successfully generated using fallback method.',
-            type: 'success',
-            duration: 3000,
-          });
-        } catch (fallbackError) {
-          console.error('Both API attempts failed:', fallbackError);
-          uiNotificationService.show({
-            title: 'Report Generation Failed',
-            message: 'Failed to generate report using both primary and fallback methods.',
-            type: 'error',
-            duration: 5000,
-          });
-        }
+      uiNotificationService.show({
+        title: 'Report Generated',
+        message: 'Hairline fracture analysis complete',
+        type: 'success',
+        duration: 3000
+      });
+    } catch (error) {
+      console.error('OpenAI API Error:', error);
+      // Add fallback handling if needed
     }
+  };
+
+  // Function to convert image URL to base64
+  const convertImageToBase64 = async (url) => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   };
 
   // Updated formatAnalysis function
@@ -1039,9 +942,8 @@ Initial AI Detection: ${detectionLabel}`;
 
   const fetchResult = async (instance_id: string) => {
     try {
-      // Fetch the report data from the DICOM instance attachments
       const response = await axios.get(
-        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/result/${instance_id}` // Updated endpoint to fetch the specific attachment
+        `https://maiabe-h7h6bndqegdjbyfr.westus2-01.azurewebsites.net/result/${instance_id}?size=1024`
       );
 
       // Extract the report data from the response
