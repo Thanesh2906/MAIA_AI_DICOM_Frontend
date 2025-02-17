@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { LayoutSelector as OHIFLayoutSelector, ToolbarButton, LayoutPreset } from '@ohif/ui';
+import { useAppContext } from '../../../../platform/app/src/AppContext';
 
 const defaultCommonPresets = [
   {
@@ -164,8 +165,10 @@ function LayoutSelector({
 
   const onInteractionHandler = () => {
     setIsOpen(!isOpen);
+    setBlobbing(false);
   };
   const DropdownContent = isOpen ? OHIFLayoutSelector : null;
+  const { setBlobbing } = useAppContext();
 
   return (
     <ToolbarButton
@@ -216,7 +219,7 @@ function LayoutSelector({
               </div>
             </div>
 
-            <div className="bg-primary-dark flex flex-col gap-2.5 border-l-2 border-solid border-black  p-2">
+            <div className="bg-primary-dark flex flex-col gap-2.5 border-l-2 border-solid border-black p-2">
               <div className="text-aqua-pale text-xs">Custom</div>
               <DropdownContent
                 rows={rows}
