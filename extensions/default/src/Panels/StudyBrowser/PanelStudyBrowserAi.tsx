@@ -32,7 +32,7 @@ import FormData from 'form-data';
 import dcmjs from 'dcmjs';
 import Groq from 'groq-sdk';
 import { ChatCompletionContentPart } from 'groq-sdk/resources/chat/completions';
-import OpenAI from "openai";
+import OpenAI from 'openai';
 
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
@@ -513,11 +513,11 @@ function PanelStudyBrowserAi({
   };
 
   const handlePerformAIReporting = async () => {
-    const imageUrl = clickedImage + "?size=2048";
+    const imageUrl = clickedImage + '?size=2048';
     console.log('Using enlarged image URL:', imageUrl);
 
-    const base64Image:any = await convertImageToBase64(imageUrl);
-    
+    const base64Image: any = await convertImageToBase64(imageUrl);
+
     // Updated instructions without hairline fracture specificity
     const instructions = `Instructions:
     Generate a structured radiological report following this format:
@@ -550,27 +550,28 @@ function PanelStudyBrowserAi({
     try {
       // Initialize OpenAI
       const openai = new OpenAI({
-        apiKey: "xai-PRP9mLhkXN9gnhJ6cQqEyGmla4f5Sx6D3BdTzQBjapGM7HG3QKsnGWND7WmmpIBxWFYJYOQVsnowNbh7",
+        apiKey:
+          'xai-PRP9mLhkXN9gnhJ6cQqEyGmla4f5Sx6D3BdTzQBjapGM7HG3QKsnGWND7WmmpIBxWFYJYOQVsnowNbh7',
         dangerouslyAllowBrowser: true,
-        baseURL: "https://api.x.ai/v1",
+        baseURL: 'https://api.x.ai/v1',
       });
 
       // Create completion using OpenAI
       const completion = await openai.chat.completions.create({
-        model: "grok-2-vision-1212",
+        model: 'grok-2-vision-1212',
         messages: [
           {
-            role: "user",
+            role: 'user',
             content: [
               {
-                type: "image_url",
+                type: 'image_url',
                 image_url: {
                   url: base64Image, // Use base64 image here
-                  detail: "high",
+                  detail: 'high',
                 },
               },
               {
-                type: "text",
+                type: 'text',
                 text: instructions,
               },
             ],
@@ -580,13 +581,13 @@ function PanelStudyBrowserAi({
 
       const output = completion.choices[0].message.content;
       // Maintain existing formatting
-      setReportOutput(output.replace(/\*/g, '').trim());
+      setReportOutput(output.replace(/\*/g, '').replace(/#/g, '').trim());
 
       uiNotificationService.show({
         title: 'Report Generated',
         message: 'Hairline fracture analysis complete',
         type: 'success',
-        duration: 3000
+        duration: 3000,
       });
     } catch (error) {
       console.error('OpenAI API Error:', error);
@@ -595,7 +596,7 @@ function PanelStudyBrowserAi({
   };
 
   // Function to convert image URL to base64
-  const convertImageToBase64 = async (url) => {
+  const convertImageToBase64 = async url => {
     const response = await fetch(url);
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
@@ -609,16 +610,17 @@ function PanelStudyBrowserAi({
   // Updated formatAnalysis function
   function formatAnalysis(text) {
     const sections = {
-      'Type': '',
-      'Findings': '',
-      'Impression': '',
-      'Recommendations': '',
-      'Summary': ''
+      Type: '',
+      Findings: '',
+      Impression: '',
+      Recommendations: '',
+      Summary: '',
     };
 
     let currentSection = null;
-    const sectionPattern = /^\d*\.?\s*(Patient Identification|Type|Study Type|Findings|Impression|Recommendations|Summary)[\s:-]*/i;
-    
+    const sectionPattern =
+      /^\d*\.?\s*(Patient Identification|Type|Study Type|Findings|Impression|Recommendations|Summary)[\s:-]*/i;
+
     // Add pattern to match radiologist signature lines
     const radiologistPattern = /^-{3}\s*Radiologist:\s*\[.*\]\s*Date:\s*\[.*\]/i;
 
@@ -629,6 +631,7 @@ function PanelStudyBrowserAi({
         .replace(/•+/g, '•')
         .replace(/_/g, '')
         .replace(/---/g, '')
+        .replace(/#/g, '')
         .trim();
 
       // Skip radiologist signature lines
@@ -640,9 +643,8 @@ function PanelStudyBrowserAi({
       const sectionMatch = line.match(sectionPattern);
       if (sectionMatch) {
         const rawSection = sectionMatch[1].trim();
-        currentSection = rawSection.toLowerCase() === 'patient identification'
-          ? 'Study type'
-          : rawSection;
+        currentSection =
+          rawSection.toLowerCase() === 'patient identification' ? 'Study type' : rawSection;
 
         // Remove the entire matched section header from the line
         line = line.replace(sectionMatch[0], '').trim();
@@ -737,7 +739,7 @@ function PanelStudyBrowserAi({
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
 
     // Add header on first page
@@ -782,11 +784,14 @@ function PanelStudyBrowserAi({
       { text: `Sex: ${PatientSex || 'Not specified'}`, style: 'patientInfo' },
       '',
       { text: 'Type', style: 'sectionHeader' },
-      ...(sections['Type']?.split('\n').filter(l =>
-        !l.match(/Patient(_| )?[\w-]{36}/i) &&
-        !l.match(/(Name|MRN|DOB|Sex):/) &&
-        l.trim().length > 0
-      ) || ['Radiographic examination not specified']),
+      ...(sections['Type']
+        ?.split('\n')
+        .filter(
+          l =>
+            !l.match(/Patient(_| )?[\w-]{36}/i) &&
+            !l.match(/(Name|MRN|DOB|Sex):/) &&
+            l.trim().length > 0
+        ) || ['Radiographic examination not specified']),
       '',
       { text: 'Findings', style: 'sectionHeader' },
       ...(sections['Findings']?.split('\n') || ['No significant findings']),
@@ -798,7 +803,7 @@ function PanelStudyBrowserAi({
       ...(sections['Recommendations']?.split('\n') || ['No recommendations']),
       '',
       { text: 'Summary', style: 'sectionHeader' },
-      ...(sections['Summary']?.split('\n') || ['No summary available'])
+      ...(sections['Summary']?.split('\n') || ['No summary available']),
     ];
 
     // Process content
@@ -855,10 +860,11 @@ function PanelStudyBrowserAi({
         }
 
         // Remove bullet points for patient information
-        const isPatientInfo = item.startsWith('Name:') ||
-                             item.startsWith('MRN:') ||
-                             item.startsWith('Date of Birth:') ||
-                             item.startsWith('Sex:');
+        const isPatientInfo =
+          item.startsWith('Name:') ||
+          item.startsWith('MRN:') ||
+          item.startsWith('Date of Birth:') ||
+          item.startsWith('Sex:');
 
         doc.setFontSize(11);
         doc.setFont('helvetica', isPatientInfo ? 'bold' : 'normal');
@@ -1102,7 +1108,7 @@ function PanelStudyBrowserAi({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <Button onClick={closeDialog}>Cancel</Button>
-                <Button onClick={onContinue}>{isGenerating ? 'Generating...' : 'Generate'}</Button>
+                <Button onClick={onContinue}>{isGenerating ? 'Analyzing...' : 'Generate'}</Button>
                 <Button
                   disabled={!reportOutput}
                   onClick={() => setCurrentPage(1)}
@@ -1168,7 +1174,7 @@ function _mapDataSourceStudies(studies) {
     StudyInstanceUID: study.studyInstanceUid,
     StudyTime: study.time,
     PatientDOB: study.PatientBirthDate || 'Unknown',
-    PatientSex: study.PatientSex || 'U'
+    PatientSex: study.PatientSex || 'U',
   }));
 }
 
