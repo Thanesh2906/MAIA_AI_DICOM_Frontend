@@ -33,7 +33,6 @@ import dcmjs from 'dcmjs';
 import Groq from 'groq-sdk';
 import { ChatCompletionContentPart } from 'groq-sdk/resources/chat/completions';
 import OpenAI from 'openai';
-
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
 /**
@@ -545,7 +544,10 @@ function PanelStudyBrowserAi({
        - [Follow-up timeline if required]
 
     6. Summary
-       - [Concise overview of examination results]`;
+       - [Concise overview of examination results]
+
+    7. Normal/Abnormal
+       - [Put normal if no issues, abnormal if detected issues]`;
 
     try {
       // Initialize OpenAI
@@ -579,9 +581,72 @@ function PanelStudyBrowserAi({
         ],
       });
 
-      const output = completion.choices[0].message.content;
+      let output: string = completion.choices[0].message.content;
+      output = output.replace(/\*/g, '').replace(/#/g, '').trim();
+      const normalAbnormalMatch = output.match(/7\. Normal\/Abnormal\s*-\s*(\w+)/i);
+
+      if (normalAbnormalMatch && normalAbnormalMatch[1]) {
+        const normalAbnormalValue = normalAbnormalMatch[1];
+        console.log('Normal/Abnormal Value:', normalAbnormalValue);
+        if (normalAbnormalValue === 'normal' || normalAbnormalValue === 'Normal') {
+          console.log('Reanalyzing with Groq...');
+          const groq = new Groq({
+            apiKey: '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',
+            dangerouslyAllowBrowser: true,
+          });
+
+          // New request to Groq using the same parameters
+          const base64Content = [
+            {
+              type: 'text',
+              text: instructions,
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: base64Image as string,
+              },
+            },
+          ];
+
+          const fallbackResponse = await groq.chat.completions.create({
+            messages: [
+              {
+                role: 'user',
+                content: base64Content as ChatCompletionContentPart[],
+              },
+            ],
+            model: 'llama-3.2-90b-vision-preview',
+            temperature: 0.7,
+            max_tokens: 2048,
+            top_p: 0.9,
+            stream: false,
+            stop: null,
+          });
+
+          // Extract output from the fallback response
+          let fallbackOutput = fallbackResponse.choices[0].message.content;
+          fallbackOutput = output.replace(/\*/g, '').replace(/#/g, '').trim();
+          const normalAbnormalMatch2 = output.match(/ Normal\/Abnormal\s*-\s*(\w+)/i);
+
+          if (normalAbnormalMatch2 && normalAbnormalMatch2[1]) {
+            const normalAbnormalValue2 = normalAbnormalMatch2[1];
+            console.log('Normal/Abnormal Value:', normalAbnormalValue2);
+            if (normalAbnormalValue2 === 'abnormal' || normalAbnormalValue2 === 'Abnormal') {
+              output = fallbackOutput;
+            }
+          }
+        } else {
+          console.log('Normal/Abnormal section not found.');
+        }
+      }
+
+      // Remove the Normal/Abnormal section before setting the report output
+      output = output.replace(/7\. Normal\/Abnormal\s*-\s*\w+/i, '').trim();
+      output = output.replace(/Normal\/Abnormal\s*-\s*\w+/i, '').trim();
+
       // Maintain existing formatting
-      setReportOutput(output.replace(/\*/g, '').replace(/#/g, '').trim());
+      setReportOutput(output);
 
       uiNotificationService.show({
         title: 'Report Generated',
