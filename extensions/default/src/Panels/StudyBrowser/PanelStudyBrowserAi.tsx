@@ -135,11 +135,11 @@ function PanelStudyBrowserAi({
       if (instanceId) {
         const url = 'http://orthanc.zairiz.com:8042/instances/' + instanceId + '/frames/0/rendered';
         console.log('url: ', url);
-        try {
-          fetchResult(instanceId);
-        } catch (error) {
+        // try {
+        //   fetchResult(instanceId);
+        // } catch (error) {
           setClickedImage(url);
-        }
+        // }
       }
 
       // Show a notification for the action
